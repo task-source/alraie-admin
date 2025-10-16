@@ -1,25 +1,32 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { JSX } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
+import TermsAndConditions from './pages/TermsAndConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import AnimalType from './pages/AnimalType';
+
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+  const { token } = useAuth();
+  return token ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+          <Route path="/terms" element={<PrivateRoute><TermsAndConditions /></PrivateRoute>} />
+          <Route path="/privacy" element={<PrivateRoute><PrivacyPolicy /></PrivateRoute>} />
+          <Route path="/animalType" element={<PrivateRoute><AnimalType /></PrivateRoute>} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

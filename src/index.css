@@ -11,3 +11,22 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.ProseMirror {
+  outline: none;
+  min-height: 200px;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.ProseMirror p {
+  margin: 0 0 8px;
+}
+
+.ProseMirror strong {
+  font-weight: 600;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
