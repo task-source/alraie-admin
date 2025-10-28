@@ -7,6 +7,7 @@ import Users from './pages/Users';
 import TermsAndConditions from './pages/TermsAndConditions';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AnimalType from './pages/AnimalType';
+import { LoaderProvider } from './context/LoaderContext';
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -15,6 +16,7 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
 
 function App() {
   return (
+    <LoaderProvider>
     <AuthProvider>
       <Router>
         <Routes>
@@ -27,6 +29,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </LoaderProvider>
   );
 }
 

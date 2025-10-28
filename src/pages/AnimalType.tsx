@@ -25,6 +25,7 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import api from '../api/api';
+import { useLoader } from '../context/LoaderContext';
 
 interface AnimalType {
   _id: string;
@@ -36,9 +37,9 @@ interface AnimalType {
 }
 
 const AnimalTypes: React.FC = () => {
+  const { showLoader, hideLoader } = useLoader();
   const [animalTypes, setAnimalTypes] = useState<AnimalType[]>([]);
   const [category, setCategory] = useState<string>(''); // all/farm/pet
-  const [loading, setLoading] = useState<boolean>(false);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [editing, setEditing] = useState<AnimalType | null>(null);
   const [formData, setFormData] = useState({
@@ -50,7 +51,7 @@ const AnimalTypes: React.FC = () => {
 
   const fetchAnimalTypes = async () => {
     try {
-      setLoading(true);
+      showLoader();
       const params: any = {};
       if (category && category !== 'all') {
         params.category = category;
@@ -63,7 +64,7 @@ const AnimalTypes: React.FC = () => {
     } catch (err) {
       console.error('Error fetching animal types:', err);
     } finally {
-      setLoading(false);
+      hideLoader();
     }
   };
 
@@ -99,6 +100,7 @@ const AnimalTypes: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      showLoader();
       if (editing) {
         await api.put(`/admin/animalType/${editing._id}`, formData);
       } else {
@@ -108,16 +110,21 @@ const AnimalTypes: React.FC = () => {
       fetchAnimalTypes();
     } catch (err) {
       console.error('Error saving animal type:', err);
+    }finally{
+      hideLoader();
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this animal type?')) return;
     try {
+      showLoader();
       await api.delete(`/admin/animalType/${id}`);
       fetchAnimalTypes();
     } catch (err) {
       console.error('Error deleting animal type:', err);
+    }finally{
+      hideLoader();
     }
   };
 
@@ -150,9 +157,7 @@ const AnimalTypes: React.FC = () => {
           </Button>
         </Box>
 
-        {loading ? (
-          <CircularProgress />
-        ) : (
+   
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -204,7 +209,6 @@ const AnimalTypes: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        )}
 
         {/* Add/Edit Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth>

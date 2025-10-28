@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import { TextField, Button, Box } from '@mui/material';
+import { useLoader } from '../context/LoaderContext';
 
 const Login = () => {
+  const { showLoader, hideLoader } = useLoader();
   const { setToken } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -12,6 +14,7 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
+      showLoader();
       const res = await api.post('/auth/login', { accountType: "email",email, password,  language: "en", });
        if(res.data.success){
          setToken(res.data.refreshToken);
@@ -19,6 +22,8 @@ const Login = () => {
        }
     } catch (err) {
       console.error(err);
+    }finally{
+      hideLoader();
     }
   };
 

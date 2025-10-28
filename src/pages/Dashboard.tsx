@@ -3,14 +3,17 @@ import Sidebar from '../components/Sidebar';
 import PageWrapper from '../components/PageWrapper';
 import { Box, Typography, Paper } from '@mui/material';
 import api from '../api/api';
+import { useLoader } from '../context/LoaderContext';
 
 const Dashboard = () => {
+  const { showLoader, hideLoader } = useLoader();
   const [totalUsers, setTotalUsers] =  useState(0);
   const [totalOwners, setTotalOwners] =  useState(0);
   const [totalAdmins, setTotalAdmins] =  useState(0);
   const [totalAssistants, setTotalAssistants] =  useState(0);
   useEffect(() => {
     (async () => {
+      showLoader();
       try {
         const res = await api.get('/admin/dashboard/stats');
         if(res.data.success){
@@ -23,6 +26,8 @@ const Dashboard = () => {
         
       } catch (err) {
         console.error('Failed to fetch terms', err);
+      }finally{
+        hideLoader();
       }
     })();
   }, []);

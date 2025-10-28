@@ -21,6 +21,7 @@ import {
 import api from '../api/api'; // Axios instance with baseURL
 import Sidebar from '../components/Sidebar';
 import PageWrapper from '../components/PageWrapper';
+import { useLoader } from '../context/LoaderContext';
 
 interface User {
   id: string | undefined;
@@ -32,17 +33,17 @@ interface User {
 }
 
 const Users: React.FC = () => {
+  const { showLoader, hideLoader } = useLoader();
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [role, setRole] = useState<string>('');
 
   const fetchUsers = async () => {
     try {
-      setLoading(true);
+      showLoader();
       const params: any = { page, limit, search };
     if (role) {
       params.role = role;
@@ -57,7 +58,7 @@ const Users: React.FC = () => {
     } catch (err) {
       console.error('Error fetching users:', err);
     } finally {
-      setLoading(false);
+      hideLoader();
     }
   };
 
@@ -100,11 +101,6 @@ const Users: React.FC = () => {
             Apply
           </Button>
         </Box>
-
-        {loading ? (
-          <CircularProgress />
-        ) : (
-          <>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
@@ -139,8 +135,6 @@ const Users: React.FC = () => {
                 color="primary"
               />
             </Box>
-          </>
-        )}
       </PageWrapper>
       </Box>
     </Box>
