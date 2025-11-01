@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { Backdrop, CircularProgress } from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
 
 type LoaderContextType = {
   showLoader: () => void;
@@ -17,12 +17,30 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
   return (
     <LoaderContext.Provider value={{ showLoader, hideLoader }}>
       {children}
-      <Backdrop
-        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 9999 }}
-        open={loading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
+
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            key="loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <div className="relative flex flex-col items-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-14 h-14 border-4 border-t-transparent border-white rounded-full"
+              />
+
+              <p className="mt-4 text-white text-sm font-medium tracking-wide">
+                Loading...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </LoaderContext.Provider>
   );
 };

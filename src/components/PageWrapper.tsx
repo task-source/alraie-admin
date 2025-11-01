@@ -1,17 +1,15 @@
-import React, { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
 
-const PageWrapper = ({ children }: { children: ReactNode }) => {
+const PageWrapper: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className = "" }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4 }}
-      style={{ padding: 20 }}
+    <main
+      className={`min-h-screen p-6 md:p-8 lg:p-10 transition-all ${className}`}
     >
-      {children}
-    </motion.div>
+      <div className="max-w-[1400px] mx-auto">{children}</div>
+    </main>
   );
 };
 

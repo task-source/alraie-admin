@@ -1,68 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import Sidebar from '../components/Sidebar';
-import PageWrapper from '../components/PageWrapper';
-import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Button,
-  Select,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent,
-} from '@mui/material';
-import api from '../api/api';
-import { useLoader } from '../context/LoaderContext';
+import React, { useEffect, useState } from "react";
+import Sidebar from "../components/Sidebar";
+import PageWrapper from "../components/PageWrapper";
+import api from "../api/api";
+import { useLoader } from "../context/LoaderContext";
+import Header from "../components/Header";
+import { useAlert } from "../context/AlertContext";
+import { DataTable, DataTableColumn } from "../components/DataTable";
 
 interface AnimalType {
   _id: string;
   name_en: string;
   name_ar: string;
   key: string;
-  category: 'farm' | 'pet';
+  category: "farm" | "pet";
   createdAt: string;
 }
 
 const AnimalTypes: React.FC = () => {
+  const { showAlert, showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
   const [animalTypes, setAnimalTypes] = useState<AnimalType[]>([]);
-  const [category, setCategory] = useState<string>(''); // all/farm/pet
+  const [category, setCategory] = useState<string>("");
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [editing, setEditing] = useState<AnimalType | null>(null);
   const [formData, setFormData] = useState({
-    name_en: '',
-    name_ar: '',
-    key: '',
-    category: '',
+    name_en: "",
+    name_ar: "",
+    key: "",
+    category: "",
   });
 
+  // Fetch Animal Types
   const fetchAnimalTypes = async () => {
     try {
       showLoader();
       const params: any = {};
-      if (category && category !== 'all') {
-        params.category = category;
-      }
+      if (category && category !== "all") params.category = category;
 
-      const res = await api.get('/admin/animalType', { params });
-      if (res.data.success) {
-        setAnimalTypes(res.data.data);
-      }
+      const res = await api.get("/admin/animalType", { params });
+      if (res.data.success) setAnimalTypes(res.data.data);
     } catch (err) {
-      console.error('Error fetching animal types:', err);
+      showApiError(err);
     } finally {
       hideLoader();
     }
@@ -83,18 +61,17 @@ const AnimalTypes: React.FC = () => {
       });
     } else {
       setEditing(null);
-      setFormData({ name_en: '', name_ar: '', key: '', category: '' });
+      setFormData({ name_en: "", name_ar: "", key: "", category: "" });
     }
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => setOpenDialog(false);
 
-  // Updated handleChange
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target as { name: string; value: string };
+    const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -104,164 +81,192 @@ const AnimalTypes: React.FC = () => {
       if (editing) {
         await api.put(`/admin/animalType/${editing._id}`, formData);
       } else {
-        await api.post('/admin/animalType', formData);
+        await api.post("/admin/animalType", formData);
       }
       handleCloseDialog();
       fetchAnimalTypes();
+      showAlert("success", "Animal type saved successfully");
     } catch (err) {
-      console.error('Error saving animal type:', err);
-    }finally{
+      showApiError(err);
+    } finally {
       hideLoader();
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this animal type?')) return;
+    if (!window.confirm("Are you sure you want to delete this animal type?"))
+      return;
     try {
       showLoader();
       await api.delete(`/admin/animalType/${id}`);
       fetchAnimalTypes();
     } catch (err) {
-      console.error('Error deleting animal type:', err);
-    }finally{
+      showApiError(err);
+    } finally {
       hideLoader();
     }
   };
 
+  const columns: DataTableColumn<AnimalType>[] = [
+    {
+      key: "name_en",
+      label: "English Name",
+      render: (a) => a.name_en,
+    },
+    {
+      key: "name_ar",
+      label: "Arabic Name",
+      render: (a) => a.name_ar,
+    },
+    {
+      key: "key",
+      label: "Key",
+      render: (a) => a.key,
+    },
+    {
+      key: "category",
+      label: "Category",
+      render: (a) => (
+        <span className="capitalize text-gray-800 dark:text-gray-200">
+          {a.category}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Created At",
+      render: (a) =>
+        new Date(a.createdAt).toLocaleString("en-IN", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (a) => (
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => handleOpenDialog(a)}
+            className="border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white rounded-lg px-3 py-1 text-sm transition"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDelete(a._id)}
+            className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-lg px-3 py-1 text-sm transition"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+      className: "text-right",
+    },
+  ];
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       <Sidebar />
-      <Box flex={1}>
-      <PageWrapper>
-        <Typography variant="h4" gutterBottom>
-          Animal Types
-        </Typography>
 
-        {/* Filter and Add */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>Category</InputLabel>
-            <Select
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <PageWrapper>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-6 text-gray-800 dark:text-white">
+            Animal Types
+          </h1>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4 w-full">
+            <select
               value={category}
-              label="Category"
               onChange={(e) => setCategory(e.target.value)}
+              className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-48 focus:ring-2 focus:ring-[#4F46E5] outline-none"
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="farm">Farm</MenuItem>
-              <MenuItem value="pet">Pet</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="">All Categories</option>
+              <option value="farm">Farm</option>
+              <option value="pet">Pet</option>
+            </select>
 
-          <Button variant="contained" onClick={() => handleOpenDialog()}>
-            + Add Animal Type
-          </Button>
-        </Box>
+            <button
+              onClick={() => handleOpenDialog()}
+              className="bg-[#4F46E5] hover:bg-[#0000CC] text-white text-sm font-medium rounded-lg px-4 py-2 transition-all w-full sm:w-auto"
+            >
+              + Add Animal Type
+            </button>
+          </div>
 
-   
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>English Name</TableCell>
-                  <TableCell>Arabic Name</TableCell>
-                  <TableCell>Key</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Created At</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {animalTypes.length > 0 ? (
-                  animalTypes.map((animal) => (
-                    <TableRow key={animal._id}>
-                      <TableCell>{animal.name_en}</TableCell>
-                      <TableCell>{animal.name_ar}</TableCell>
-                      <TableCell>{animal.key}</TableCell>
-                      <TableCell>{animal.category}</TableCell>
-                      <TableCell>{new Date(animal.createdAt).toLocaleString()}</TableCell>
-                      <TableCell align="right">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleOpenDialog(animal)}
-                          sx={{ mr: 1 }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          color="error"
-                          variant="outlined"
-                          onClick={() => handleDelete(animal._id)}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      No animal types found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <DataTable<AnimalType>
+            data={animalTypes}
+            columns={columns}
+            emptyMessage="No animal types found"
+          />
 
-        {/* Add/Edit Dialog */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth>
-          <DialogTitle>{editing ? 'Edit Animal Type' : 'Add Animal Type'}</DialogTitle>
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-              <TextField
-                label="English Name"
-                name="name_en"
-                value={formData.name_en}
-                onChange={(e)=>{handleChange(e as React.ChangeEvent<HTMLInputElement>)}}
-                fullWidth
-              />
-              <TextField
-                label="Arabic Name"
-                name="name_ar"
-                value={formData.name_ar}
-                onChange={(e)=>{handleChange(e as React.ChangeEvent<HTMLInputElement>)}}
-                fullWidth
-              />
-              {!editing && (
-                <TextField
-                  label="Key"
-                  name="key"
-                  value={formData.key}
-                  onChange={(e)=>{handleChange(e as React.ChangeEvent<HTMLInputElement>)}}
-                  fullWidth
-                />
-              )}
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  name="category"
-                  value={formData.category}
-                  label="Category"
-                  onChange={(e)=>{handleChange(e as SelectChangeEvent<string>)}}
-                >
-                  <MenuItem value="farm">Farm</MenuItem>
-                  <MenuItem value="pet">Pet</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              {editing ? 'Update' : 'Create'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </PageWrapper>
-      </Box>
-    </Box>
+          {openDialog && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-3">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">
+                  {editing ? "Edit Animal Type" : "Add Animal Type"}
+                </h2>
+
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    name="name_en"
+                    placeholder="English Name"
+                    value={formData.name_en}
+                    onChange={handleChange}
+                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                  />
+                  <input
+                    type="text"
+                    name="name_ar"
+                    placeholder="Arabic Name"
+                    value={formData.name_ar}
+                    onChange={handleChange}
+                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                  />
+                  {!editing && (
+                    <input
+                      type="text"
+                      name="key"
+                      placeholder="Key"
+                      value={formData.key}
+                      onChange={handleChange}
+                      className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                    />
+                  )}
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                  >
+                    <option value="">Select Category</option>
+                    <option value="farm">Farm</option>
+                    <option value="pet">Pet</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+                  <button
+                    onClick={handleCloseDialog}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 w-full sm:w-auto"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    className="px-4 py-2 bg-[#4F46E5] hover:bg-[#0000CC] text-white rounded-lg text-sm transition w-full sm:w-auto"
+                  >
+                    {editing ? "Update" : "Create"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </PageWrapper>
+      </div>
+    </div>
   );
 };
 

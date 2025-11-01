@@ -1,139 +1,130 @@
-import React, { useEffect, useState } from 'react';
-import Sidebar from '../components/Sidebar';
-import PageWrapper from '../components/PageWrapper';
-import {
-  Box,
-  Button,
-  Typography,
-  IconButton,
-  Menu,
-  MenuItem,
-  TextField,
-  Tooltip,
-  Tabs,
-  Tab,
-} from '@mui/material';
-import api from '../api/api';
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { TextStyle } from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
-import Link from '@tiptap/extension-link';
-import Heading from '@tiptap/extension-heading';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Highlight from '@tiptap/extension-highlight';
+
+import React, { useEffect, useState } from "react";
+import Sidebar from "../components/Sidebar";
+import PageWrapper from "../components/PageWrapper";
+import api from "../api/api";
 import { useLoader } from "../context/LoaderContext";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Link from "@tiptap/extension-link";
+import Heading, { Level } from "@tiptap/extension-heading";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Header from "../components/Header";
 
-// Icons
-import FormatBoldIcon from '@mui/icons-material/FormatBold';
-import FormatItalicIcon from '@mui/icons-material/FormatItalic';
-import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
-import StrikethroughSIcon from '@mui/icons-material/StrikethroughS';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
-import UndoIcon from '@mui/icons-material/Undo';
-import RedoIcon from '@mui/icons-material/Redo';
-import LinkIcon from '@mui/icons-material/Link';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  List as ListIcon,
+  ListOrdered as ListOrderedIcon,
+  Undo2,
+  Redo2,
+  Link as LinkIcon,
+} from "lucide-react";
+import { useAlert } from "../context/AlertContext";
 
-const headings = [
-  { label: 'Paragraph', level: 0 },
-  { label: 'Heading 1', level: 1 },
-  { label: 'Heading 2', level: 2 },
-  { label: 'Heading 3', level: 3 },
+const headings: { label: string; level: Level | 0 }[] = [
+  { label: "Paragraph", level: 0 },
+  { label: "Heading 1", level: 1 },
+  { label: "Heading 2", level: 2 },
+  { label: "Heading 3", level: 3 },
 ];
 
 const TermsAndConditions: React.FC = () => {
+  const { showAlert, showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
-  const [lang, setLang] = useState<'en' | 'ar'>('en');
-  const [contentEn, setContentEn] = useState('');
-  const [contentAr, setContentAr] = useState('');
+  const [lang, setLang] = useState<"en" | "ar">("en");
+  const [contentEn, setContentEn] = useState("");
+  const [contentAr, setContentAr] = useState("");
   const [editing, setEditing] = useState(false);
 
-  const [headingAnchor, setHeadingAnchor] = useState<null | HTMLElement>(null);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [textColor, setTextColor] = useState('#000000');
-  const [bgColor, setBgColor] = useState('#ffffff');
+  const [linkUrl, setLinkUrl] = useState("");
+  const [textColor, setTextColor] = useState("#000000");
+  const [bgColor, setBgColor] = useState("#ffffff");
+  const [showHeadings, setShowHeadings] = useState(false);
 
-  const currentContent = lang === 'en' ? contentEn : contentAr;
+  const currentContent = lang === "en" ? contentEn : contentAr;
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit, // include lists, headings, listItem, etc.
       Underline,
       TextStyle,
       Color,
       Link.configure({ openOnClick: true }),
       Heading.configure({ levels: [1, 2, 3] }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Highlight.configure({ multicolor: true }),
     ],
-    content: '<p></p>',
+    content: "<p></p>",
     editable: editing,
+    onCreate: ({ editor }) => {
+      (window as any).editor = editor;
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      if (lang === 'en') setContentEn(html);
+      if (lang === "en") setContentEn(html);
       else setContentAr(html);
     },
   });
 
-  // 🔹 Fetch both EN + AR content initially
   useEffect(() => {
     (async () => {
       showLoader();
       try {
         const results = await Promise.allSettled([
-          api.get('/terms?lang=en'),
-          api.get('/terms?lang=ar'),
+          api.get("/terms?lang=en"),
+          api.get("/terms?lang=ar"),
         ]);
-  
-        // English result
+
         const enRes =
-          results[0].status === 'fulfilled' ? results[0].value.data.html || '' : '';
-        // Arabic result
+          results[0].status === "fulfilled"
+            ? results[0].value.data.html || ""
+            : "";
         const arRes =
-          results[1].status === 'fulfilled' ? results[1].value.data.html || '' : '';
-  
+          results[1].status === "fulfilled"
+            ? results[1].value.data.html || ""
+            : "";
+
         setContentEn(enRes);
         setContentAr(arRes);
-  
-        // Load editor based on current language
-        if (lang === 'en') editor?.commands.setContent(enRes);
-        else editor?.commands.setContent(arRes);
+        editor?.commands.setContent(lang === "en" ? enRes : arRes);
       } catch (err) {
-        console.error('Failed to fetch one or more terms', err);
-      }finally{
-        hideLoader()
+        showApiError(err);
+      } finally {
+        hideLoader();
       }
     })();
   }, [editor, lang]);
 
-  // 🔹 Update editor content on tab switch
   useEffect(() => {
     if (editor) {
-      const html = lang === 'en' ? contentEn : contentAr;
-      editor.commands.setContent(html || '<p></p>');
+      editor.commands.setContent(
+        lang === "en" ? contentEn || "<p></p>" : contentAr || "<p></p>"
+      );
     }
   }, [lang, editor]);
 
   const handleUpdate = async () => {
+    showLoader();
     try {
-      showLoader();
-      const html = lang === 'en' ? contentEn : contentAr;
-      await api.post('/terms/update', { html, language: lang });
+      const html = lang === "en" ? contentEn : contentAr;
+      const res = await api.post("/terms/update", { html, language: lang });
       setEditing(false);
       editor?.setEditable(false);
+      if (res.data.success) {
+        showAlert("success", "Terms & Conditions updated successfully");
+      }
     } catch (err) {
-      console.error('Update failed', err);
-    }finally{
-      hideLoader()
+      showApiError(err);
+    } finally {
+      hideLoader();
     }
-  };
-
-  const handleEdit = () => {
-    setEditing(true);
-    editor?.setEditable(true);
   };
 
   const handleCancel = () => {
@@ -142,219 +133,275 @@ const TermsAndConditions: React.FC = () => {
     editor?.commands.setContent(currentContent);
   };
 
-  // Toolbar actions
-  const applyTextColor = (color: string) => {
-    setTextColor(color);
-    editor?.chain().focus().setColor(color).run();
-  };
-
-  const applyBgColor = (color: string) => {
-    setBgColor(color);
-    editor?.chain().focus().setHighlight({ color }).run();
-  };
-
   const insertLink = () => {
     if (!linkUrl) return;
-    editor?.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
-    setLinkUrl('');
+    editor
+      ?.chain()
+      .focus()
+      .extendMarkRange("link")
+      .setLink({ href: linkUrl })
+      .run();
+    setLinkUrl("");
   };
 
-  const openHeadingMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setHeadingAnchor(event.currentTarget);
+  const toggleBullet = () => {
+    if (!editor) return;
+    editor.chain().focus().toggleBulletList().run();
   };
-  const closeHeadingMenu = () => setHeadingAnchor(null);
-  const setHeading = (level: any) => {
-    if (level === 0) editor?.chain().focus().setParagraph().run();
-    else editor?.chain().focus().toggleHeading({ level }).run();
-    closeHeadingMenu();
+
+  const toggleOrdered = () => {
+    if (!editor) return;
+    editor.chain().focus().toggleOrderedList().run();
   };
+
+  const setHeadingLevel = (level: number) => {
+    if (!editor) return;
+    if (level === 0) {
+      editor.chain().focus().setParagraph().run();
+    } else {
+      if (editor.isActive("heading", { level })) {
+        editor.chain().focus().setParagraph().run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .setHeading({ level: level as Level })
+          .run();
+      }
+    }
+    setShowHeadings(false);
+  };
+
+  const currentHeading = (() => {
+    for (const h of [1, 2, 3]) {
+      if (editor?.isActive("heading", { level: h })) return h;
+    }
+    return 0;
+  })();
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       <Sidebar />
-      <Box sx={{ flex: 1 }}>
+      <div className="flex-1">
+        <Header />
         <PageWrapper>
-          <Typography variant="h4" gutterBottom>
-            Terms & Conditions
-          </Typography>
+          <h1 className="text-3xl font-semibold mb-6">Terms & Conditions</h1>
 
-          {/* 🔹 Language Tabs */}
-          <Tabs
-            value={lang}
-            onChange={(_, value) => setLang(value)}
-            sx={{ mb: 2 }}
-            variant="standard"
-          >
-            <Tab label="English" value="en" />
-            <Tab label="Arabic" value="ar" />
-          </Tabs>
+          <div className="flex gap-2 mb-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setLang("en")}
+              className={`px-4 py-2 text-sm font-medium ${
+                lang === "en"
+                  ? "border-b-2 border-[#4F46E5] text-[#4F46E5]"
+                  : "text-gray-500"
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setLang("ar")}
+              className={`px-4 py-2 text-sm font-medium ${
+                lang === "ar"
+                  ? "border-b-2 border-[#4F46E5] text-[#4F46E5]"
+                  : "text-gray-500"
+              }`}
+            >
+              Arabic
+            </button>
+          </div>
 
           {editing && editor ? (
             <>
-              {/* Toolbar */}
-              <Box
-                sx={{
-                  mb: 1,
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 1,
-                  alignItems: 'center',
-                }}
-              >
-                <Tooltip title="Bold">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    color={editor.isActive('bold') ? 'primary' : 'default'}
-                  >
-                    <FormatBoldIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Italic">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    color={editor.isActive('italic') ? 'primary' : 'default'}
-                  >
-                    <FormatItalicIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Underline">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    color={editor.isActive('underline') ? 'primary' : 'default'}
-                  >
-                    <FormatUnderlinedIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Strikethrough">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleStrike().run()}
-                    color={editor.isActive('strike') ? 'primary' : 'default'}
-                  >
-                    <StrikethroughSIcon />
-                  </IconButton>
-                </Tooltip>
-
-                <Button
-                  endIcon={<ArrowDropDownIcon />}
-                  onClick={openHeadingMenu}
-                  variant="outlined"
-                  size="small"
+              <div className="flex flex-wrap items-center gap-2 mb-3 bg-white dark:bg-gray-800 p-3 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  className={`p-2 rounded ${
+                    editor.isActive("bold")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
                 >
-                  Heading
-                </Button>
-                <Menu
-                  anchorEl={headingAnchor}
-                  open={Boolean(headingAnchor)}
-                  onClose={closeHeadingMenu}
+                  <Bold className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  className={`p-2 rounded ${
+                    editor.isActive("italic")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
                 >
-                  {headings.map((h) => (
-                    <MenuItem key={h.level} onClick={() => setHeading(h.level)}>
-                      {h.label}
-                    </MenuItem>
-                  ))}
-                </Menu>
+                  <Italic className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleUnderline().run()}
+                  className={`p-2 rounded ${
+                    editor.isActive("underline")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <UnderlineIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleStrike().run()}
+                  className={`p-2 rounded ${
+                    editor.isActive("strike")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <Strikethrough className="w-4 h-4" />
+                </button>
 
-                <Tooltip title="Bullet List">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    color={editor.isActive('bulletList') ? 'primary' : 'default'}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowHeadings(!showHeadings)}
+                    className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
                   >
-                    <FormatListBulletedIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Numbered List">
-                  <IconButton
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    color={editor.isActive('orderedList') ? 'primary' : 'default'}
-                  >
-                    <FormatListNumberedIcon />
-                  </IconButton>
-                </Tooltip>
+                    {currentHeading === 0
+                      ? "Paragraph"
+                      : `Heading ${currentHeading}`}{" "}
+                    ▼
+                  </button>
+                  {showHeadings && (
+                    <div className="absolute mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md z-10">
+                      {headings.map((h) => (
+                        <button
+                          key={h.level}
+                          onClick={() => setHeadingLevel(h.level)}
+                          className={`block px-4 py-2 text-left w-full ${
+                            currentHeading === h.level
+                              ? "bg-[#4F46E5] text-white"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {h.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                <Tooltip title="Undo">
-                  <IconButton onClick={() => editor.chain().focus().undo().run()}>
-                    <UndoIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Redo">
-                  <IconButton onClick={() => editor.chain().focus().redo().run()}>
-                    <RedoIcon />
-                  </IconButton>
-                </Tooltip>
+                {/* Lists */}
+                <button
+                  onClick={toggleBullet}
+                  className={`p-2 rounded ${
+                    editor.isActive("bulletList")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <ListIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={toggleOrdered}
+                  className={`p-2 rounded ${
+                    editor.isActive("orderedList")
+                      ? "bg-[#4F46E5] text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <ListOrderedIcon className="w-4 h-4" />
+                </button>
 
-                <TextField
-                  size="small"
+                <button
+                  onClick={() => editor.chain().focus().undo().run()}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().redo().run()}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  <Redo2 className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="url"
                   placeholder="https://example.com"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
-                  sx={{ width: 200 }}
+                  className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm w-40 bg-transparent"
                 />
-                <Tooltip title="Insert Link">
-                  <IconButton onClick={insertLink}>
-                    <LinkIcon />
-                  </IconButton>
-                </Tooltip>
+                <button
+                  onClick={insertLink}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                </button>
 
-                <Tooltip title="Text Color">
-                  <TextField
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => applyTextColor(e.target.value)}
-                    size="small"
-                    sx={{ width: 50 }}
-                  />
-                </Tooltip>
-                <Tooltip title="Highlight Color">
-                  <TextField
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => applyBgColor(e.target.value)}
-                    size="small"
-                    sx={{ width: 50 }}
-                  />
-                </Tooltip>
-              </Box>
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) =>
+                    editor?.chain().focus().setColor(e.target.value).run()
+                  }
+                  className="w-8 h-8 border rounded"
+                />
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) =>
+                    editor
+                      ?.chain()
+                      .focus()
+                      .setHighlight({ color: e.target.value })
+                      .run()
+                  }
+                  className="w-8 h-8 border rounded"
+                />
+              </div>
 
               {/* Editor */}
-              <Box
-                sx={{
-                  border: '1px solid #ccc',
-                  borderRadius: 2,
-                  p: 2,
-                  minHeight: 300,
-                  direction: lang === 'ar' ? 'rtl' : 'ltr',
-                }}
+              <div
+                className={`editor-root border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[300px] bg-white dark:bg-gray-800 ${
+                  lang === "ar" ? "text-right" : "text-left"
+                }`}
+                dir={lang === "ar" ? "rtl" : "ltr"}
               >
                 <EditorContent editor={editor} />
-              </Box>
+              </div>
 
-              <Button onClick={handleUpdate} variant="contained" sx={{ mt: 2 }}>
-                Save ({lang.toUpperCase()})
-              </Button>
-              <Button onClick={handleCancel} variant="outlined" sx={{ mt: 2, ml: 2 }}>
-                Cancel
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={handleUpdate}
+                  className="bg-[#4F46E5] hover:bg-[#0000CC] text-white px-5 py-2 rounded-lg font-medium"
+                >
+                  Save ({lang.toUpperCase()})
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="border border-gray-300 dark:border-gray-600 px-5 py-2 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <Box
-                sx={{
-                  border: '1px solid #ccc',
-                  borderRadius: 2,
-                  p: 2,
-                  minHeight: 200,
-                  direction: lang === 'ar' ? 'rtl' : 'ltr',
-                }}
+              <div
+                className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[250px] bg-white dark:bg-gray-800 ${
+                  lang === "ar" ? "text-right" : "text-left"
+                }`}
+                dir={lang === "ar" ? "rtl" : "ltr"}
                 dangerouslySetInnerHTML={{ __html: currentContent }}
               />
-              <Button onClick={handleEdit} variant="outlined" sx={{ mt: 2 }}>
+              <button
+                onClick={() => {
+                  setEditing(true);
+                  editor?.setEditable(true);
+                }}
+                className="mt-4 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white px-5 py-2 rounded-lg font-medium transition"
+              >
                 Edit
-              </Button>
+              </button>
             </>
           )}
         </PageWrapper>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
