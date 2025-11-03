@@ -17,6 +17,7 @@ import logo from "../images/logo192.png";
 const menuItems = [
   { text: "Dashboard", path: "/", icon: <FaHome /> },
   { text: "Users", path: "/users", icon: <FaUsers /> },
+  { text: "Animals", path: "/animals", icon: <FaPaw /> },
   { text: "Terms & Conditions", path: "/terms", icon: <FaFileAlt /> },
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
   { text: "Animal Type", path: "/animalType", icon: <FaPaw /> },

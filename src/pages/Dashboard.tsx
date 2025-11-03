@@ -4,7 +4,15 @@ import PageWrapper from "../components/PageWrapper";
 import api from "../api/api";
 import { useLoader } from "../context/LoaderContext";
 import { motion } from "framer-motion";
-import { FiUsers, FiClipboard, FiShield, FiUserCheck } from "react-icons/fi";
+import {
+  FiUsers,
+  FiClipboard,
+  FiShield,
+  FiUserCheck,
+  FiActivity,
+  FiHome,
+  FiHeart,
+} from "react-icons/fi";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -22,27 +30,47 @@ import {
 import Header from "../components/Header";
 import { useAlert } from "../context/AlertContext";
 
-type Stats = {
+type UserStats = {
   totalUsers: number;
   totalOwners: number;
   totalAdmins: number;
   totalAssistants: number;
 };
 
-const COLOR_MAP: Record<string, string> = {
-  Owners: "#6366F1", // Indigo
-  Assistants: "#10B981", // Emerald
-  Admins: "#F59E0B", // Amber
+type AnimalStats = {
+  totalAnimals: number;
+  farmAnimals: number;
+  petAnimals: number;
+  types: {
+    key: string;
+    name_en: string | null;
+    name_ar: string | null;
+    count: number;
+  }[];
 };
 
-const sampleSparkline = [
-  { month: "Jan", value: 120 },
-  { month: "Feb", value: 200 },
-  { month: "Mar", value: 150 },
-  { month: "Apr", value: 240 },
-  { month: "May", value: 300 },
-  { month: "Jun", value: 260 },
-  { month: "Jul", value: 320 },
+type DashboardData = {
+  users: UserStats;
+  animals: AnimalStats;
+};
+
+type AnimalStatusSummary = {
+  active: number;
+  sold: number;
+  dead: number;
+  transferred: number;
+  total: number;
+};
+
+const COLOR_PALETTE = [
+  "#6366F1",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#F97316",
 ];
 
 const StatCard: React.FC<{
@@ -71,33 +99,31 @@ const StatCard: React.FC<{
 const Dashboard: React.FC = () => {
   const { showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
-  const [stats, setStats] = useState<Stats>({
+
+  const [activeFarmSections, setActiveFarmSections] = useState<string[]>([]);
+  const [activePetSections, setActivePetSections] = useState<string[]>([]);
+
+  const [userStats, setUserStats] = useState<UserStats>({
     totalUsers: 0,
     totalOwners: 0,
     totalAdmins: 0,
     totalAssistants: 0,
   });
-  const [sparkData] = useState(sampleSparkline);
-  const [activeSections, setActiveSections] = useState<string[]>([
-    "Owners",
-    "Assistants",
-    "Admins",
-  ]);
 
-  const barData = [
-    { label: "Users", value: stats.totalUsers },
-    { label: "Owners", value: stats.totalOwners },
-    { label: "Assistants", value: stats.totalAssistants },
-    { label: "Admins", value: stats.totalAdmins },
-  ];
+  const [animalStats, setAnimalStats] = useState<AnimalStats>({
+    totalAnimals: 0,
+    farmAnimals: 0,
+    petAnimals: 0,
+    types: [],
+  });
 
-  const pieBaseData = [
-    { label: "Owners", value: stats.totalOwners },
-    { label: "Assistants", value: stats.totalAssistants },
-    { label: "Admins", value: stats.totalAdmins },
-  ];
+  const [animalStatusSummary, setAnimalStatusSummary] =
+    useState<AnimalStatusSummary | null>(null);
 
-  const pieData = pieBaseData.filter((d) => activeSections.includes(d.label));
+  const [sparkData, setSparkData] = useState<
+    { month: string; value: number }[]
+  >([]);
+  const [growthError, setGrowthError] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -105,27 +131,65 @@ const Dashboard: React.FC = () => {
       try {
         const res = await api.get("/admin/dashboard/stats");
         if (res.data?.success) {
-          const d = res.data.data;
-          setStats({
-            totalUsers: d.totalUsers ?? 0,
-            totalOwners: d.totalOwners ?? 0,
-            totalAdmins: d.totalAdmins ?? 0,
-            totalAssistants: d.totalAssistants ?? 0,
-          });
+          const data: DashboardData = res.data.data;
+          setUserStats(data?.users);
+          setAnimalStats(data?.animals);
+
+          const farmKeys = data?.animals?.types
+            ?.filter((a) => a.key.toLowerCase().includes("farm"))
+            .map((a) => a.key);
+          const petKeys = data?.animals?.types
+            ?.filter((a) => !a.key.toLowerCase().includes("farm"))
+            .map((a) => a.key);
+          setActiveFarmSections(farmKeys || []);
+          setActivePetSections(petKeys || []);
+        }
+
+        const growthRes = await api.get("/admin/dashboard/userGrowth");
+        if (growthRes?.data?.success && Array.isArray(growthRes.data.data)) {
+          const formattedData = growthRes.data.data.map(
+            (d: { month: string; value: number }) => ({
+              month: d.month ?? "",
+              value: Number(d.value) || 0,
+            })
+          );
+          setSparkData(formattedData);
+        } else {
+          setGrowthError(true);
+        }
+
+        const animalStatusRes = await api.get(
+          "/admin/dashboard/animalStatusSummary"
+        );
+        if (animalStatusRes?.data?.success && animalStatusRes.data.data) {
+          setAnimalStatusSummary(animalStatusRes.data.data);
+        } else {
+          setAnimalStatusSummary(null);
         }
       } catch (err) {
         showApiError(err);
+        setGrowthError(true);
       } finally {
         hideLoader();
       }
     })();
   }, []);
 
-  const toggleSection = (label: string) => {
-    setActiveSections((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
-    );
-  };
+  const barData = animalStatusSummary
+    ? [
+        { label: "Active", value: animalStatusSummary.active ?? 0 },
+        { label: "Sold", value: animalStatusSummary.sold ?? 0 },
+        { label: "Dead", value: animalStatusSummary.dead ?? 0 },
+        { label: "Transferred", value: animalStatusSummary.transferred ?? 0 },
+      ]
+    : [];
+
+  const farmAnimalTypes = animalStats?.types?.filter((a) =>
+    a.key.toLowerCase().includes("farm")
+  );
+  const petAnimalTypes = animalStats?.types?.filter(
+    (a) => !a.key.toLowerCase().includes("farm")
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -145,166 +209,302 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-wrap gap-4 mb-6">
             <StatCard
               title="Total Users"
-              value={stats.totalUsers}
+              value={userStats?.totalUsers}
               icon={<FiUsers />}
             />
             <StatCard
               title="Total Owners"
-              value={stats.totalOwners}
+              value={userStats?.totalOwners}
               icon={<FiUserCheck />}
             />
             <StatCard
               title="Total Assistants"
-              value={stats.totalAssistants}
+              value={userStats?.totalAssistants}
               icon={<FiClipboard />}
             />
             <StatCard
               title="Total Admins"
-              value={stats.totalAdmins}
+              value={userStats?.totalAdmins}
               icon={<FiShield />}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-4 mb-6">
+            <StatCard
+              title="Total Animals"
+              value={animalStats?.totalAnimals}
+              icon={<FiActivity />}
+            />
+            <StatCard
+              title="Farm Animals"
+              value={animalStats?.farmAnimals}
+              icon={<FiHome />}
+            />
+            <StatCard
+              title="Pet Animals"
+              value={animalStats?.petAnimals}
+              icon={<FiHeart />}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    User growth (sample trend)
-                  </div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {stats.totalUsers} users
-                  </div>
+              <div className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+                User Growth (last 12 months)
+              </div>
+              {growthError || sparkData.length === 0 ? (
+                <div className="h-40 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                  No growth data available
                 </div>
-              </div>
-
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparkData}>
-                    <defs>
-                      <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                        <stop
-                          offset="5%"
-                          stopColor="#4F46E5"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#4F46E5"
-                          stopOpacity={0.05}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="month" hide />
-                    <ReTooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#4F46E5"
-                      strokeWidth={2}
-                      fill="url(#colorUv)"
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              ) : (
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparkData}>
+                      <defs>
+                        <linearGradient
+                          id="colorUv"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#4F46E5"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#4F46E5"
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                      />
+                      <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+                      <ReTooltip />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#4F46E5"
+                        strokeWidth={2}
+                        fill="url(#colorUv)"
+                        dot={{ r: 3 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-              <div className="mb-3">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  User type breakdown
-                </div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Distribution
-                </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Animal Status Summary
               </div>
-
-              <div className="h-44">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ left: -10, right: 0 }}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#e5e7eb"
-                    />
-                    <XAxis dataKey="label" tick={{ fill: "#9CA3AF" }} />
-                    <YAxis />
-                    <ReTooltip />
-                    <Bar dataKey="value" fill="#4F46E5" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {barData.length === 0 ? (
+                <div className="h-44 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                  No status data available
+                </div>
+              ) : (
+                <div className="h-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#e5e7eb"
+                      />
+                      <XAxis dataKey="label" tick={{ fill: "#9CA3AF" }} />
+                      <YAxis />
+                      <ReTooltip />
+                      <Bar
+                        dataKey="value"
+                        fill="#4F46E5"
+                        radius={[6, 6, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-            <div className="mb-3">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Role distribution
-              </div>
-            </div>
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {farmAnimalTypes?.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm flex flex-col">
+                <div className="mb-3">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Farm Animal Distribution
+                  </div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {animalStats.farmAnimals} Farm Animals
+                  </div>
+                </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="w-full md:w-1/2 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="label"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      innerRadius={50}
-                      paddingAngle={4}
-                    >
-                      {pieData.map((entry) => (
-                        <Cell
-                          key={entry.label}
-                          fill={COLOR_MAP[entry.label] || "#9CA3AF"}
-                          strokeWidth={1}
-                        />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+                <div className="flex flex-col md:flex-row items-center gap-6 flex-1">
+                  <div className="w-full md:w-1/2 h-64 md:h-72 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={farmAnimalTypes?.filter((a) =>
+                            activeFarmSections.includes(a.key)
+                          )}
+                          dataKey="count"
+                          nameKey="key"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="85%"
+                          innerRadius="45%"
+                          paddingAngle={4}
+                        >
+                          {farmAnimalTypes
+                            ?.filter((a) => activeFarmSections.includes(a.key))
+                            .map((entry) => {
+                              const color =
+                                COLOR_PALETTE[
+                                  farmAnimalTypes?.findIndex(
+                                    (x) => x.key === entry.key
+                                  ) % COLOR_PALETTE.length
+                                ];
+                              return (
+                                <Cell
+                                  key={entry.key}
+                                  fill={color}
+                                  strokeWidth={1}
+                                />
+                              );
+                            })}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                {pieBaseData.map((d) => {
-                  const active = activeSections.includes(d.label);
-                  return (
-                    <button
-                      key={d.label}
-                      onClick={() => toggleSection(d.label)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition ${
-                        active
-                          ? "border-transparent bg-gray-100 dark:bg-gray-700"
-                          : "border border-gray-300 dark:border-gray-600 opacity-60"
-                      }`}
-                    >
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                          backgroundColor: COLOR_MAP[d.label],
-                          opacity: active ? 1 : 0.3,
-                        }}
-                      ></span>
-                      <span
-                        className={`text-sm font-medium ${
-                          active
-                            ? "text-gray-800 dark:text-gray-200"
-                            : "text-gray-400 dark:text-gray-500 line-through"
-                        }`}
-                      >
-                        {d.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                  <div className="flex-1 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex flex-col gap-2">
+                      {farmAnimalTypes?.map((a, i) => {
+                        const active = activeFarmSections.includes(a.key);
+                        return (
+                          <button
+                            key={a.key}
+                            onClick={() =>
+                              setActiveFarmSections((prev) =>
+                                prev.includes(a.key)
+                                  ? prev.filter((k) => k !== a.key)
+                                  : [...prev, a.key]
+                              )
+                            }
+                            className={`flex items-center gap-2 text-sm transition text-left ${
+                              active ? "opacity-100" : "opacity-50 line-through"
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor:
+                                  COLOR_PALETTE[i % COLOR_PALETTE.length],
+                                opacity: active ? 1 : 0.3,
+                              }}
+                            ></span>
+                            <span className="flex-1 text-gray-800 dark:text-gray-200">
+                              {a.name_en || a.key} — <strong>{a.count}</strong>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+            {petAnimalTypes?.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm flex flex-col">
+                <div className="mb-3">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Pet Animal Distribution
+                  </div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {animalStats.petAnimals} Pet Animals
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center gap-6 flex-1">
+                  <div className="w-full md:w-1/2 h-64 md:h-72 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={petAnimalTypes?.filter((a) =>
+                            activePetSections.includes(a.key)
+                          )}
+                          dataKey="count"
+                          nameKey="key"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="85%"
+                          innerRadius="45%"
+                          paddingAngle={4}
+                        >
+                          {petAnimalTypes
+                            ?.filter((a) => activePetSections.includes(a.key))
+                            .map((entry) => {
+                              const color =
+                                COLOR_PALETTE[
+                                  petAnimalTypes?.findIndex(
+                                    (x) => x.key === entry.key
+                                  ) % COLOR_PALETTE.length
+                                ];
+                              return (
+                                <Cell
+                                  key={entry.key}
+                                  fill={color}
+                                  strokeWidth={1}
+                                />
+                              );
+                            })}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex-1 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex flex-col gap-2">
+                      {petAnimalTypes?.map((a, i) => {
+                        const active = activePetSections.includes(a.key);
+                        return (
+                          <button
+                            key={a.key}
+                            onClick={() =>
+                              setActivePetSections((prev) =>
+                                prev.includes(a.key)
+                                  ? prev.filter((k) => k !== a.key)
+                                  : [...prev, a.key]
+                              )
+                            }
+                            className={`flex items-center gap-2 text-sm transition text-left ${
+                              active ? "opacity-100" : "opacity-50 line-through"
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor:
+                                  COLOR_PALETTE[i % COLOR_PALETTE.length],
+                                opacity: active ? 1 : 0.3,
+                              }}
+                            ></span>
+                            <span className="flex-1 text-gray-800 dark:text-gray-200">
+                              {a.name_en || a.key} — <strong>{a.count}</strong>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </PageWrapper>
       </div>

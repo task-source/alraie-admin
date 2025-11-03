@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
+import Animals from "./pages/Animals";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AnimalType from "./pages/AnimalType";
@@ -45,6 +46,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Users />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/animals"
+                    element={
+                      <PrivateRoute>
+                        <Animals />
                       </PrivateRoute>
                     }
                   />

@@ -92,13 +92,17 @@ const Users: React.FC = () => {
                 placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none dark:text-white"
               />
 
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-48 focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                className="flex-1 border border-gray-300 dark:border-gray-700 
+             bg-white dark:bg-gray-800 
+             text-sm rounded-lg px-3 py-2 w-full sm:w-48 
+             focus:ring-2 focus:ring-[#4F46E5] outline-none
+             text-gray-800 dark:text-white"
               >
                 <option value="">All Roles</option>
                 <option value="superadmin">Super Admin</option>
