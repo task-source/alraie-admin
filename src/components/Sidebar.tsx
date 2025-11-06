@@ -11,6 +11,7 @@ import {
   FaUserShield,
   FaPaw,
   FaSignOutAlt,
+  FaStreetView
 } from "react-icons/fa";
 import logo from "../images/logo192.png";
 
@@ -21,6 +22,7 @@ const menuItems = [
   { text: "Terms & Conditions", path: "/terms", icon: <FaFileAlt /> },
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
   { text: "Animal Type", path: "/animalType", icon: <FaPaw /> },
+  { text: "Geofences", path: "/geofences", icon: <FaStreetView /> },
 ];
 
 const Sidebar: React.FC = () => {

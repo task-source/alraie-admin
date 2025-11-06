@@ -162,7 +162,7 @@ const Animals: React.FC = () => {
       key: "profilePicture",
       label: "Photo",
       render: (r) => {
-        const src = r.profilePicture;
+        let src = r?.profilePicture;
         return (
           <div className="flex items-center gap-3">
             {!!src ? (
@@ -171,7 +171,7 @@ const Animals: React.FC = () => {
                 alt={r.name || r.uniqueAnimalId || "animal"}
                 onError={(e: any) => {
                   if (e?.currentTarget?.src !== FALLBACK_IMG) {
-                    e.currentTarget.src = FALLBACK_IMG;
+                   src = null
                   }
                 }}
                 className="w-12 h-12 rounded-md object-cover border"

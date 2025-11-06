@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import PageWrapper from "../components/PageWrapper";
 import api from "../api/api";
@@ -6,6 +6,9 @@ import { useLoader } from "../context/LoaderContext";
 import Header from "../components/Header";
 import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
+import { PhotoIcon } from "@heroicons/react/24/outline";
+
+type Category = "farm" | "pet" | "";
 
 interface AnimalType {
   _id: string;
@@ -14,33 +17,50 @@ interface AnimalType {
   key: string;
   category: "farm" | "pet";
   createdAt: string;
+  imageUrl?: string | null; // optional, may be missing
 }
+
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const AnimalTypes: React.FC = () => {
   const { showAlert, showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
+
   const [animalTypes, setAnimalTypes] = useState<AnimalType[]>([]);
-  const [category, setCategory] = useState<string>("");
+  const [category, setCategory] = useState<Category>("");
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [editing, setEditing] = useState<AnimalType | null>(null);
+
   const [formData, setFormData] = useState({
     name_en: "",
     name_ar: "",
     key: "",
-    category: "",
+    category: "" as Category,
   });
 
-  // Fetch Animal Types
+  // Image handling
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // load animal types
   const fetchAnimalTypes = async () => {
     try {
       showLoader();
       const params: any = {};
-      if (category && category !== "all") params.category = category;
 
+      
+      if (category) params.category = category;
       const res = await api.get("/admin/animalType", { params });
-      if (res.data.success) setAnimalTypes(res.data.data);
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setAnimalTypes(res.data.data);
+      } else {
+        setAnimalTypes([]);
+      }
     } catch (err) {
       showApiError(err);
+      setAnimalTypes([]);
     } finally {
       hideLoader();
     }
@@ -48,25 +68,38 @@ const AnimalTypes: React.FC = () => {
 
   useEffect(() => {
     fetchAnimalTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
   const handleOpenDialog = (animal?: AnimalType) => {
     if (animal) {
       setEditing(animal);
       setFormData({
-        name_en: animal.name_en,
-        name_ar: animal.name_ar,
-        key: animal.key,
-        category: animal.category,
+        name_en: animal.name_en || "",
+        name_ar: animal.name_ar || "",
+        key: animal.key || "",
+        category: animal.category || "",
       });
+      setSelectedFile(null);
+      setPreviewUrl(animal.imageUrl ?? null);
     } else {
       setEditing(null);
       setFormData({ name_en: "", name_ar: "", key: "", category: "" });
+      setSelectedFile(null);
+      setPreviewUrl(null);
     }
     setOpenDialog(true);
   };
 
-  const handleCloseDialog = () => setOpenDialog(false);
+  const handleCloseDialog = () => {
+    // cleanup preview objectURL if we created one
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setOpenDialog(false);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -75,18 +108,88 @@ const AnimalTypes: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validateAndSetFile = (file: File | null) => {
+    if (!file) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      return true;
+    }
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      showAlert("error", "Only JPG, PNG, WEBP or GIF images are allowed.");
+      return false;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      showAlert("error", "Image too large. Max allowed size is 5 MB.");
+      return false;
+    }
+    // create preview
+    const url = URL.createObjectURL(file);
+    // revoke previous if blob
+    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(file);
+    setPreviewUrl(url);
+    return true;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    validateAndSetFile(f);
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    // also clear file input value
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmit = async () => {
+    // basic validation
+    if (!formData.name_en?.trim()) {
+      showAlert("error", "English name is required.");
+      return;
+    }
+    if (!formData.category) {
+      showAlert("error", "Please select a category.");
+      return;
+    }
+
     try {
       showLoader();
-      if (editing) {
-        await api.put(`/admin/animalType/${editing._id}`, formData);
-      } else {
-        await api.post("/admin/animalType", formData);
+
+      // Build FormData for API (image key should be 'image')
+      const fd = new FormData();
+      fd.append("name_en", formData.name_en);
+      fd.append("name_ar", formData.name_ar || "");
+      fd.append("key", formData.key || "");
+      fd.append("category", formData.category);
+
+      // if a new file is selected, append it
+      if (selectedFile) {
+        fd.append("image", selectedFile);
       }
-      handleCloseDialog();
+
+      if (editing) {
+        // Update - PUT with FormData
+        await api.put(`/admin/animalType/${editing._id}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        showAlert("success", "Animal type updated successfully");
+      } else {
+        // Create - POST with FormData
+        await api.post("/admin/animalType", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        showAlert("success", "Animal type created successfully");
+      }
+
+      // refresh list and close dialog
       fetchAnimalTypes();
-      showAlert("success", "Animal type saved successfully");
-    } catch (err) {
+      handleCloseDialog();
+    } catch (err: any) {
       showApiError(err);
     } finally {
       hideLoader();
@@ -94,11 +197,11 @@ const AnimalTypes: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this animal type?"))
-      return;
+    if (!window.confirm("Are you sure you want to delete this animal type?")) return;
     try {
       showLoader();
       await api.delete(`/admin/animalType/${id}`);
+      showAlert("success", "Animal type deleted");
       fetchAnimalTypes();
     } catch (err) {
       showApiError(err);
@@ -109,26 +212,54 @@ const AnimalTypes: React.FC = () => {
 
   const columns: DataTableColumn<AnimalType>[] = [
     {
+      key: "image",
+      label: "Image",
+      render: (a) => {
+        const src = a.imageUrl ?? "";
+        return (
+          <div className="flex items-center">
+            {src ? (
+              <img
+                src={src}
+                alt={a.name_en || a.key}
+                onError={(e: any) => {
+                  // fallback to icon if remote image fails
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "";
+                }}
+                className="w-12 h-12 rounded-md object-cover border"
+                style={{ display: src ? undefined : "none" }}
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-md border flex items-center justify-center bg-gray-50 dark:bg-gray-700">
+                <PhotoIcon className="w-6 h-6 text-gray-400" />
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: "name_en",
       label: "English Name",
-      render: (a) => a.name_en,
+      render: (a) => a.name_en || "—",
     },
     {
       key: "name_ar",
       label: "Arabic Name",
-      render: (a) => a.name_ar,
+      render: (a) => a.name_ar || "—",
     },
     {
       key: "key",
       label: "Key",
-      render: (a) => a.key,
+      render: (a) => a.key || "—",
     },
     {
       key: "category",
       label: "Category",
       render: (a) => (
         <span className="capitalize text-gray-800 dark:text-gray-200">
-          {a.category}
+          {a.category || "—"}
         </span>
       ),
     },
@@ -136,10 +267,12 @@ const AnimalTypes: React.FC = () => {
       key: "createdAt",
       label: "Created At",
       render: (a) =>
-        new Date(a.createdAt).toLocaleString("en-IN", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }),
+        a.createdAt
+          ? new Date(a.createdAt).toLocaleString("en-IN", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          : "—",
     },
     {
       key: "actions",
@@ -175,11 +308,11 @@ const AnimalTypes: React.FC = () => {
             Animal Types
           </h1>
 
-          {/* Filters */}
+          {/* Filters + Add */}
           <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4 w-full">
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => setCategory(e.target.value as Category)}
               className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-48 focus:ring-2 focus:ring-[#4F46E5] outline-none"
             >
               <option value="">All Categories</option>
@@ -201,50 +334,113 @@ const AnimalTypes: React.FC = () => {
             emptyMessage="No animal types found"
           />
 
+          {/* Dialog */}
           {openDialog && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-3">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-2xl border border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg md:text-xl font-semibold mb-4">
                   {editing ? "Edit Animal Type" : "Add Animal Type"}
                 </h2>
 
-                <div className="flex flex-col gap-3">
-                  <input
-                    type="text"
-                    name="name_en"
-                    placeholder="English Name"
-                    value={formData.name_en}
-                    onChange={handleChange}
-                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
-                  />
-                  <input
-                    type="text"
-                    name="name_ar"
-                    placeholder="Arabic Name"
-                    value={formData.name_ar}
-                    onChange={handleChange}
-                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
-                  />
-                  {!editing && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-3">
                     <input
                       type="text"
-                      name="key"
-                      placeholder="Key"
-                      value={formData.key}
+                      name="name_en"
+                      placeholder="English Name"
+                      value={formData.name_en}
                       onChange={handleChange}
                       className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
                     />
-                  )}
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
-                  >
-                    <option value="">Select Category</option>
-                    <option value="farm">Farm</option>
-                    <option value="pet">Pet</option>
-                  </select>
+                    <input
+                      type="text"
+                      name="name_ar"
+                      placeholder="Arabic Name"
+                      value={formData.name_ar}
+                      onChange={handleChange}
+                      className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                    />
+                    {!editing && (
+                      <input
+                        type="text"
+                        name="key"
+                        placeholder="Key (unique identifier)"
+                        value={formData.key}
+                        onChange={handleChange}
+                        className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                      />
+                    )}
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="farm">Farm</option>
+                      <option value="pet">Pet</option>
+                    </select>
+                  </div>
+
+                  {/* Image upload panel */}
+                  <div className="flex flex-col gap-3">
+                    <label className="text-sm text-gray-600 dark:text-gray-300">Image (optional)</label>
+
+                    <div className="border border-dashed rounded-lg p-3 flex flex-col items-center justify-center gap-3">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="preview"
+                          className="w-40 h-40 object-cover rounded-md border"
+                          onError={(e: any) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "";
+                            setPreviewUrl(null);
+                          }}
+                        />
+                      ) : editing?.imageUrl ? (
+                        <img
+                          src={editing.imageUrl as string}
+                          alt="existing"
+                          className="w-40 h-40 object-cover rounded-md border"
+                          onError={(e: any) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-40 h-40 rounded-md border bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                          <PhotoIcon className="w-10 h-10 text-gray-400" />
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <span className="px-3 py-1 bg-[#4F46E5] text-white rounded-md text-sm">Choose Image</span>
+                        </label>
+
+                        {(selectedFile || previewUrl) && (
+                          <button
+                            onClick={handleRemoveImage}
+                            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        JPG / PNG / WEBP / GIF — max 5MB
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">

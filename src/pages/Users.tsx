@@ -8,7 +8,7 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 
 interface User {
-  id: string | undefined;
+  _id: string | undefined;
   name: string | undefined;
   email: string | undefined;
   role: string | undefined;
@@ -50,6 +50,11 @@ const Users: React.FC = () => {
   }, [page, limit, search, role]);
 
   const columns: DataTableColumn<User>[] = [
+    {
+      key: "id",
+      label: "ID",
+      render: (u) => u._id ?? "N/A",
+    },
     {
       key: "phone",
       label: "Phone",
