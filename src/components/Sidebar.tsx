@@ -10,6 +10,7 @@ import {
   FaFileAlt,
   FaUserShield,
   FaPaw,
+  FaDog,
   FaSignOutAlt,
   FaStreetView
 } from "react-icons/fa";
@@ -22,6 +23,7 @@ const menuItems = [
   { text: "Terms & Conditions", path: "/terms", icon: <FaFileAlt /> },
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
   { text: "Animal Type", path: "/animalType", icon: <FaPaw /> },
+  { text: "Breeds", path: "/breeds", icon: <FaDog /> },
   { text: "Geofences", path: "/geofences", icon: <FaStreetView /> },
 ];
 

@@ -18,6 +18,7 @@ import { SidebarProvider } from "./context/SidebarContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AlertProvider } from "./context/AlertContext";
 import Geofences from "./pages/Geofences";
+import Breeds from "./pages/Breeds";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -79,6 +80,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <AnimalType />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/breeds"
+                    element={
+                      <PrivateRoute>
+                        <Breeds />
                       </PrivateRoute>
                     }
                   />
