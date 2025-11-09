@@ -7,6 +7,7 @@ import { useLoader } from "../context/LoaderContext";
 import Header from "../components/Header";
 import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
+import Modal from "../components/Modal"; // <-- Added import for reusable modal component
 
 
 interface BreedRow {
@@ -29,7 +30,18 @@ interface AnimalTypeOption {
     category?: "farm" | "pet" | string;
 }
 
-/* -------------------- Component -------------------- */
+interface BulkUploadResult {
+  success?: boolean;
+  message?: string;
+  summary?: {
+    created?: number;
+    skipped?: number;
+    total?: number;
+  } | null;
+  errors?: Array<{ key?: string; reason?: string }>;
+}
+
+const MAX_CSV_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const Breeds: React.FC = () => {
     const { showApiError, showAlert } = useAlert();
@@ -65,7 +77,21 @@ const Breeds: React.FC = () => {
 
     const keyInputRef = useRef<HTMLInputElement | null>(null);
 
-    /* -------------------- Fetch helpers -------------------- */
+    // NEW: confirmation modal state (for delete)
+    const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
+    const [breedToDelete, setBreedToDelete] = useState<BreedRow | null>(null);
+
+  // bulk upload modals
+  const [bulkModalOpen, setBulkModalOpen] = useState<boolean>(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkFileName, setBulkFileName] = useState<string>("");
+  const [bulkFileError, setBulkFileError] = useState<string | null>(null);
+  const [uploadingBulk, setUploadingBulk] = useState<boolean>(false);
+  const bulkInputRef = useRef<HTMLInputElement | null>(null);
+  const [resultModalOpen, setResultModalOpen] = useState<boolean>(false);
+  const [bulkResult, setBulkResult] = useState<BulkUploadResult | null>(null);
+
+  /* -------------------- Fetch helpers -------------------- */
 
     const fetchAnimalTypes = async () => {
         try {
@@ -123,10 +149,9 @@ const Breeds: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        fetchAnimalTypes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  useEffect(() => {
+    fetchAnimalTypes();
+  }, []);
 
     // reset page when filters/search change
     useEffect(() => {
@@ -236,8 +261,8 @@ const Breeds: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this breed?")) return;
+    const handleDeleteConfirmed = async (id: string) => {
+
         try {
             showLoader();
             await api.delete(`/admin/breed/${id}`);
@@ -252,8 +277,83 @@ const Breeds: React.FC = () => {
             showApiError(err);
         } finally {
             hideLoader();
+            // close modal and reset
+            setConfirmOpen(false);
+            setBreedToDelete(null);
         }
     };
+
+  /* -------------------- BULK UPLOAD HANDLERS -------------------- */
+
+  const resetBulkUploader = () => {
+    setBulkFile(null);
+    setBulkFileName("");
+    setBulkFileError(null);
+    if (bulkInputRef.current) bulkInputRef.current.value = "";
+  };
+
+  const handleBulkFileSelect = (file: File | null) => {
+    setBulkFileError(null);
+    if (!file) {
+      resetBulkUploader();
+      return;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (ext !== "csv") {
+      setBulkFileError("Please upload a .csv file.");
+      return;
+    }
+    if (file.size > MAX_CSV_SIZE_BYTES) {
+      setBulkFileError("File too large. Max allowed size is 10 MB.");
+      return;
+    }
+    setBulkFile(file);
+    setBulkFileName(file.name);
+  };
+
+  const onBulkInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    handleBulkFileSelect(f);
+  };
+
+  const uploadBulkFile = async () => {
+    if (!bulkFile) {
+      setBulkFileError("Please select a CSV file to continue.");
+      return;
+    }
+
+    try {
+      showLoader();
+      setUploadingBulk(true);
+      const fd = new FormData();
+      fd.append("file", bulkFile);
+
+      const res = await api.post("/admin/breed/bulkUpload", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const data = res?.data ?? null;
+      if (data?.success) showAlert("success", data.message || "CSV uploaded");
+      else showAlert("error", data?.message || "Upload failed");
+
+      setBulkResult({
+        success: data?.success,
+        message: data?.message,
+        summary: data?.summary ?? null,
+        errors: Array.isArray(data?.errors) ? data.errors : [],
+      });
+
+      setResultModalOpen(true);
+      fetchBreeds();
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setUploadingBulk(false);
+      setBulkModalOpen(false);
+      resetBulkUploader();
+    }
+  };
 
     /* -------------------- Table columns -------------------- */
 
@@ -304,7 +404,11 @@ const Breeds: React.FC = () => {
                         Edit
                     </button>
                     <button
-                        onClick={() => handleDelete(r._id)}
+                        onClick={() => {
+                            // Open confirmation modal instead of immediate browser confirm
+                            setBreedToDelete(r);
+                            setConfirmOpen(true);
+                        }}
                         className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-lg px-3 py-1 text-sm transition"
                     >
                         Delete
@@ -403,7 +507,7 @@ const Breeds: React.FC = () => {
                 <Header />
 
                 <PageWrapper>
-                    <div className="w-full max-w-full overflow-x-hidden">
+                    <div className="w-full max-w-full px-2 overflow-x-hidden">
                         <h1 className="text-2xl sm:text-3xl font-semibold mb-6 text-gray-800 dark:text-white">
                             Breeds
                         </h1>
@@ -471,6 +575,13 @@ const Breeds: React.FC = () => {
                                 Apply
                             </button>
 
+                          <button
+                              onClick={() => setBulkModalOpen(true)}
+                              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg px-4 py-2 text-sm transition"
+                          >
+                              Upload CSV
+                            </button>
+
                             <button
                                 onClick={() => openCreateDialog()}
                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg px-4 py-2 text-sm transition"
@@ -518,7 +629,7 @@ const Breeds: React.FC = () => {
                                     value={form.name_en}
                                     onChange={handleFormChange}
                                     placeholder="English name"
-                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm text-gray-400 focus:ring-2 focus:ring-[#4F46E5] outline-none"
                                 />
 
                                 <input
@@ -526,14 +637,14 @@ const Breeds: React.FC = () => {
                                     value={form.name_ar}
                                     onChange={handleFormChange}
                                     placeholder="Arabic name (optional)"
-                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm text-gray-400 focus:ring-2 focus:ring-[#4F46E5] outline-none"
                                 />
 
                                 <select
                                     name="animalTypeKey"
                                     value={form.animalTypeKey}
                                     onChange={handleFormChange}
-                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm text-gray-400 focus:ring-2 focus:ring-[#4F46E5] outline-none"
                                 >
                                     <option value="">Select Animal Type (optional)</option>
                                     {animalTypes.map((t) => (
@@ -547,7 +658,7 @@ const Breeds: React.FC = () => {
                                     name="category"
                                     value={form.category}
                                     onChange={handleFormChange}
-                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F46E5] outline-none"
+                                    className="border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg px-3 py-2 text-sm text-gray-400 focus:ring-2 focus:ring-[#4F46E5] outline-none"
                                 >
                                     <option value="">Select Category</option>
                                     <option value="farm">Farm</option>
@@ -558,7 +669,7 @@ const Breeds: React.FC = () => {
                             <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
                                 <button
                                     onClick={() => closeDialog()}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 w-full sm:w-auto"
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 w-full sm:w-auto"
                                 >
                                     Cancel
                                 </button>
@@ -572,6 +683,148 @@ const Breeds: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Confirmation Modal for Delete */}
+                <Modal
+                    open={confirmOpen}
+                    onClose={() => {
+                        setConfirmOpen(false);
+                        setBreedToDelete(null);
+                    }}
+                    title="Delete Breed"
+                    description={`Are you sure you want to delete "${breedToDelete?.name_en}"? This action cannot be undone.`}
+                    confirmText="Yes, Delete"
+                    cancelText="Cancel"
+                    confirmColor="danger"
+                    onConfirm={() => {
+                        if (breedToDelete) handleDeleteConfirmed(breedToDelete._id);
+                    }}
+                />
+
+        {/* Bulk Upload Modal */}
+        <Modal
+          open={bulkModalOpen}
+          onClose={() => {
+            setBulkModalOpen(false);
+            resetBulkUploader();
+          }}
+          title="Bulk Upload Breeds (CSV)"
+          confirmText="Continue"
+          cancelText="Cancel"
+          confirmColor="primary"
+          onConfirm={uploadBulkFile}
+        >
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+            <p>
+              To bulk upload breeds, your CSV must include the mandatory columns:
+            </p>
+            <ul className="list-disc pl-5">
+              <li><strong>name_en</strong></li>
+              <li><strong>name_ar</strong></li>
+              <li><strong>key</strong></li>
+              <li><strong>category</strong></li>
+              <li><strong>animalTypeKey</strong></li>
+            </ul>
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleBulkFileSelect(e.dataTransfer.files?.[0] ?? null);
+              }}
+              className="mt-3 border border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-3 bg-white dark:bg-gray-800"
+            >
+              <div className="text-sm">Drag & drop CSV here</div>
+              <div className="text-xs text-gray-500">or</div>
+              <label className="cursor-pointer">
+                <input
+                  ref={bulkInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={onBulkInputChange}
+                  className="hidden"
+                />
+                <span className="px-3 py-1 bg-[#4F46E5] text-white rounded-md text-sm">
+                  Choose CSV
+                </span>
+              </label>
+              {bulkFileName && (
+                <div className="text-sm mt-2">
+                  Selected: <strong>{bulkFileName}</strong>
+                </div>
+              )}
+              {bulkFileError && (
+                <div className="text-sm text-red-500 mt-2">{bulkFileError}</div>
+              )}
+            </div>
+          </div>
+        </Modal>
+
+        {/* Result Modal */}
+        <Modal
+          open={resultModalOpen}
+          onClose={() => {
+            setResultModalOpen(false);
+            setBulkResult(null);
+          }}
+          title="Bulk Upload Result"
+          confirmText="OK"
+          cancelText="Close"
+          confirmColor="primary"
+          onConfirm={() => {
+            setResultModalOpen(false);
+            setBulkResult(null);
+          }}
+        >
+          <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
+            <div>
+              <strong>Message:</strong>{" "}
+              {bulkResult?.message || "No message provided"}
+            </div>
+            <div className="flex gap-6">
+              <div>
+                <div className="text-xs text-gray-500">Created</div>
+                <div className="text-lg font-semibold">
+                  {bulkResult?.summary?.created ?? 0}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Skipped</div>
+                <div className="text-lg font-semibold">
+                  {bulkResult?.summary?.skipped ?? 0}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Total</div>
+                <div className="text-lg font-semibold">
+                  {bulkResult?.summary?.total ?? 0}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="font-medium mb-2">Skipped Rows</div>
+              <div className="max-h-60 overflow-auto border rounded-md p-2 bg-white dark:bg-gray-800">
+                {Array.isArray(bulkResult?.errors) &&
+                bulkResult?.errors.length ? (
+                  bulkResult.errors.map((err, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-start py-2 border-b last:border-0"
+                    >
+                      <div>
+                        <div className="font-medium">{err?.key ?? "[no key]"}</div>
+                        <div className="text-xs text-gray-500">
+                          {err?.reason ?? "Unknown reason"}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500">No skipped rows.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
             </main>
         </div>
     );
