@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import PageWrapper from "../components/PageWrapper";
 import api from "../api/api";
@@ -21,18 +21,30 @@ const Users: React.FC = () => {
   const { showLoader, hideLoader } = useLoader();
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(10);
+  const [limit] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(""); 
   const [role, setRole] = useState<string>("");
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const fetchUsers = useCallback(async () => {
     try {
       showLoader();
-      const params: any = { page, limit, search };
+
+      const params: Record<string, any> = {
+        page,
+        limit,
+        search: debouncedSearch,
+      };
       if (role) params.role = role;
 
       const res = await api.get("/admin/users", { params });
+
       if (res.data.success) {
         setUsers(res.data.users || []);
         setTotalPages(res.data.totalPages || 1);
@@ -42,12 +54,16 @@ const Users: React.FC = () => {
     } finally {
       hideLoader();
     }
-  };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, debouncedSearch, role]);
 
-  useEffect(() => setPage(1), [search, role]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, role]);
+
   useEffect(() => {
     fetchUsers();
-  }, [page, limit, search, role]);
+  }, [fetchUsers]);
 
   const columns: DataTableColumn<User>[] = [
     {

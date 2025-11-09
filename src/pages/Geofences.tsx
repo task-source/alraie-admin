@@ -68,7 +68,7 @@ const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className
 
 /* --- Component --- */
 const Geofences: React.FC = () => {
-  const { showApiError, showAlert } = useAlert();
+  const { showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
 
   const [rows, setRows] = useState<GeofenceRow[]>([]);

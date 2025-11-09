@@ -173,6 +173,7 @@ const Dashboard: React.FC = () => {
         hideLoader();
       }
     })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const barData = animalStatusSummary

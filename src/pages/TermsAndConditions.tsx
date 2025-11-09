@@ -44,8 +44,8 @@ const TermsAndConditions: React.FC = () => {
   const [editing, setEditing] = useState(false);
 
   const [linkUrl, setLinkUrl] = useState("");
-  const [textColor, setTextColor] = useState("#000000");
-  const [bgColor, setBgColor] = useState("#ffffff");
+  const [textColor,] = useState("#000000");
+  const [bgColor,] = useState("#ffffff");
   const [showHeadings, setShowHeadings] = useState(false);
 
   const currentContent = lang === "en" ? contentEn : contentAr;
@@ -100,6 +100,7 @@ const TermsAndConditions: React.FC = () => {
         hideLoader();
       }
     })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, lang]);
 
   useEffect(() => {
@@ -108,6 +109,7 @@ const TermsAndConditions: React.FC = () => {
         lang === "en" ? contentEn || "<p></p>" : contentAr || "<p></p>"
       );
     }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang, editor]);
 
   const handleUpdate = async () => {

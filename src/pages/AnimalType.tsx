@@ -69,7 +69,7 @@ const AnimalTypes: React.FC = () => {
   const [bulkFileError, setBulkFileError] = useState<string | null>(null);
   const bulkInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [uploadingBulk, setUploadingBulk] = useState<boolean>(false);
+  const [, setUploadingBulk] = useState<boolean>(false);
   const [resultModalOpen, setResultModalOpen] = useState<boolean>(false);
   const [bulkResult, setBulkResult] = useState<BulkUploadResult | null>(null);
   // -----------------------------------------

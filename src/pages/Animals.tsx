@@ -56,12 +56,14 @@ const Animals: React.FC = () => {
   const { showApiError } = useAlert();
   const { showLoader, hideLoader } = useLoader();
 
+  
   const [animals, setAnimals] = useState<AnimalRow[]>([]);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
 
   const [search, setSearch] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [typeId, setTypeId] = useState<string>("");
@@ -75,8 +77,15 @@ const Animals: React.FC = () => {
   const [typeOptions, setTypeOptions] = useState<AnimalTypeOption[]>([]);
 
 
-  const [sortBy, setSortBy] = useState<string>("");
+  const [sortBy,] = useState<string>("");
 
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500); // 👈 debounce 500ms
+    return () => clearTimeout(delay);
+  }, [search]);
 
   const fetchAnimalTypes = async () => {
     try {
@@ -101,7 +110,7 @@ const Animals: React.FC = () => {
       const params: any = {
         page,
         limit,
-        search,
+        search: debouncedSearch,
       };
       if (status) params.status = status;
       if (category) params.category = category;
@@ -132,11 +141,12 @@ const Animals: React.FC = () => {
   // reset page when filters/search change
   useEffect(() => {
     setPage(1);
-  }, [search, status, category, typeId, gender, startDate, endDate, limit]);
+  }, [debouncedSearch, status, category, typeId, gender, startDate, endDate, limit]);
 
   // initial fetch for types + data
   useEffect(() => {
     fetchAnimalTypes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // only once
 
   // fetch animals when page, limit or filters change
@@ -146,7 +156,7 @@ const Animals: React.FC = () => {
   }, [
     page,
     limit,
-    search,
+    debouncedSearch,
     status,
     category,
     typeId,

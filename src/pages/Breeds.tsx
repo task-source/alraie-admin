@@ -86,7 +86,7 @@ const Breeds: React.FC = () => {
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkFileName, setBulkFileName] = useState<string>("");
   const [bulkFileError, setBulkFileError] = useState<string | null>(null);
-  const [uploadingBulk, setUploadingBulk] = useState<boolean>(false);
+  const [, setUploadingBulk] = useState<boolean>(false);
   const bulkInputRef = useRef<HTMLInputElement | null>(null);
   const [resultModalOpen, setResultModalOpen] = useState<boolean>(false);
   const [bulkResult, setBulkResult] = useState<BulkUploadResult | null>(null);
@@ -151,6 +151,7 @@ const Breeds: React.FC = () => {
 
   useEffect(() => {
     fetchAnimalTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
     // reset page when filters/search change
