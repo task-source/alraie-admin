@@ -19,6 +19,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { AlertProvider } from "./context/AlertContext";
 import Geofences from "./pages/Geofences";
 import Breeds from "./pages/Breeds";
+import Slides from "./pages/Slides";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -96,6 +97,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Geofences />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/slides"
+                    element={
+                      <PrivateRoute>
+                        <Slides />
                       </PrivateRoute>
                     }
                   />
