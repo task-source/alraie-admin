@@ -57,6 +57,7 @@ const Slides: React.FC = () => {
 
   useEffect(() => {
     fetchSlides();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreateDialog = () => {
@@ -209,7 +210,7 @@ const Slides: React.FC = () => {
         <img
           src={s.imageUrl || ""}
           alt={s.title || ""}
-          onError={(e) => ((e.currentTarget.src = ""), null)}
+          onError={(e) => ((e.currentTarget.src = ""))}
           className="w-28 h-20 rounded-md object-cover border"
         />
       ),
