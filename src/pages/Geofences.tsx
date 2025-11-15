@@ -78,6 +78,9 @@ const Geofences: React.FC = () => {
 
   // Filters
   const [search, setSearch] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(""); 
+  const [debouncedOwnerID, setDebouncedOwnerID] = useState<string>(""); 
+  const [debouncedCreatedBy, setDebouncedCreatedBy] = useState<string>(""); 
   const [ownerId, setOwnerId] = useState<string>("");
   const [createdBy, setCreatedBy] = useState<string>("");
 
@@ -92,16 +95,41 @@ const Geofences: React.FC = () => {
   const [modalAnimals, setModalAnimals] = useState<SampleAnimal[]>([]);
   const [modalTitle, setModalTitle] = useState<string>("");
 
-  // load list
+  /* ---------------------- DEBOUNCING SEARCH ---------------------- */
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [search]);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setDebouncedOwnerID(ownerId);
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [ownerId]);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setDebouncedCreatedBy(createdBy);
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [createdBy]);
+  /* ---------------------- FETCH GEOFENCES ---------------------- */
+
   const fetchGeofences = async () => {
     try {
       showLoader();
       const params: any = {
         page,
         limit,
-        search: search || null,
-        ownerId: ownerId || null,
-        createdBy: createdBy || null,
+        search: debouncedSearch || null,
+        ownerId: debouncedOwnerID || null,
+        createdBy: debouncedCreatedBy || null,
         startDate: startDate || null,
         endDate: endDate || null,
         sortBy: sortBy || null,
@@ -138,13 +166,13 @@ const Geofences: React.FC = () => {
   // reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, ownerId, createdBy, startDate, endDate, sortBy, sortOrder, limit]);
+  }, [debouncedSearch, debouncedOwnerID, debouncedCreatedBy, startDate, endDate, sortBy, sortOrder, limit]);
 
   // initial fetch & on page/limit/filter changes
   useEffect(() => {
     fetchGeofences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, search, ownerId, createdBy, startDate, endDate, sortBy, sortOrder]);
+  }, [page, limit, debouncedSearch, debouncedOwnerID, debouncedCreatedBy, startDate, endDate, sortBy, sortOrder]);
 
   // DataTable columns (uses your DataTable component shape)
   const columns: DataTableColumn<GeofenceRow>[] = [
@@ -167,7 +195,7 @@ const Geofences: React.FC = () => {
       key: "center",
       label: "Center (lat / lng)",
       render: (r) =>
-        r.center && typeof r.center.lat !== "undefined" && typeof r.center.lng !== "undefined"
+        r.center && r.center.lat !== undefined && r.center.lng !== undefined
           ? `${r.center.lat}, ${r.center.lng}`
           : "N/A",
     },

@@ -13,7 +13,8 @@ import {
   FaDog,
   FaSignOutAlt,
   FaStreetView,
-  FaImages
+  FaImages,
+  FaMapMarkerAlt
 } from "react-icons/fa";
 import logo from "../images/logo192.png";
 
@@ -26,6 +27,7 @@ const menuItems = [
   { text: "Animal Type", path: "/animalType", icon: <FaPaw /> },
   { text: "Breeds", path: "/breeds", icon: <FaDog /> },
   { text: "Geofences", path: "/geofences", icon: <FaStreetView /> },
+  { text: "GPS", path: "/gps", icon: <FaMapMarkerAlt /> },
   { text: "Slides", path: "/slides", icon: <FaImages /> },
 ];
 

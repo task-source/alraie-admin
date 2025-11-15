@@ -20,6 +20,7 @@ import { AlertProvider } from "./context/AlertContext";
 import Geofences from "./pages/Geofences";
 import Breeds from "./pages/Breeds";
 import Slides from "./pages/Slides";
+import Gps from "./pages/Gps";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -97,6 +98,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Geofences />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/gps"
+                    element={
+                      <PrivateRoute>
+                        <Gps />
                       </PrivateRoute>
                     }
                   />

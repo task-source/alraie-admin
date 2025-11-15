@@ -10,9 +10,17 @@ import {
   FiShield,
   FiUserCheck,
   FiActivity,
-  FiHome,
-  FiHeart,
 } from "react-icons/fi";
+
+import {
+FaMale,
+FaFemale,
+FaGenderless,
+FaDog,
+FaHorse,
+FaPaw
+} from "react-icons/fa";
+
 import {
   ResponsiveContainer,
   AreaChart,
@@ -41,6 +49,9 @@ type AnimalStats = {
   totalAnimals: number;
   farmAnimals: number;
   petAnimals: number;
+  maleAnimals: number;
+  femaleAnimals: number;
+  unknownAnimals: number;
   types: {
     key: string;
     name_en: string | null;
@@ -114,6 +125,9 @@ const Dashboard: React.FC = () => {
     totalAnimals: 0,
     farmAnimals: 0,
     petAnimals: 0,
+    femaleAnimals:0,
+    maleAnimals:0,
+    unknownAnimals:0,
     types: [],
   });
 
@@ -213,6 +227,8 @@ const Dashboard: React.FC = () => {
               value={userStats?.totalUsers}
               icon={<FiUsers />}
             />
+          </div>
+          <div className="flex flex-wrap gap-4 mb-6">
             <StatCard
               title="Total Owners"
               value={userStats?.totalOwners}
@@ -234,17 +250,37 @@ const Dashboard: React.FC = () => {
             <StatCard
               title="Total Animals"
               value={animalStats?.totalAnimals}
-              icon={<FiActivity />}
+              icon={<FaPaw />}
             />
+          </div>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <StatCard
+              title="Male"
+              value={animalStats?.maleAnimals}
+              icon={<FaMale />}
+            />
+            <StatCard
+              title="Female"
+              value={animalStats?.femaleAnimals}
+              icon={<FaFemale />}
+            />
+            <StatCard
+              title="Unknown"
+              value={animalStats?.unknownAnimals}
+              icon={<FaGenderless />}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-4 mb-6">
             <StatCard
               title="Farm Animals"
               value={animalStats?.farmAnimals}
-              icon={<FiHome />}
+              icon={<FaHorse />}
             />
             <StatCard
               title="Pet Animals"
               value={animalStats?.petAnimals}
-              icon={<FiHeart />}
+              icon={<FaDog />}
             />
           </div>
 

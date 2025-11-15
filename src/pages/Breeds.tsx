@@ -57,6 +57,7 @@ const Breeds: React.FC = () => {
     const [totalPages, setTotalPages] = useState<number>(1);
 
     const [search, setSearch] = useState<string>("");
+    const [debouncedSearch, setDebouncedSearch] = useState<string>("");
     const [category, setCategory] = useState<string>(""); // farm | pet | ""
     const [animalTypeKeyFilter, setAnimalTypeKeyFilter] = useState<string>("");
 
@@ -118,7 +119,7 @@ const Breeds: React.FC = () => {
                 lang: "en",
                 page,
                 limit,
-                search: search || undefined,
+                search: debouncedSearch || undefined,
                 category: category || undefined,
                 animalTypeKey: animalTypeKeyFilter || undefined,
                 sortBy: sortBy || undefined,
@@ -149,6 +150,14 @@ const Breeds: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 500);
+        return () => clearTimeout(delay);
+    }, [search]);
+
+
   useEffect(() => {
     fetchAnimalTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,13 +166,13 @@ const Breeds: React.FC = () => {
     // reset page when filters/search change
     useEffect(() => {
         setPage(1);
-    }, [search, category, animalTypeKeyFilter, limit, sortBy, sortOrder]);
+    }, [debouncedSearch, category, animalTypeKeyFilter, limit, sortBy, sortOrder]);
 
     // fetch breeds on page/limit/filter changes
     useEffect(() => {
         fetchBreeds();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, limit, search, category, animalTypeKeyFilter, sortBy, sortOrder]);
+    }, [page, limit, debouncedSearch, category, animalTypeKeyFilter, sortBy, sortOrder]);
 
     /* -------------------- Form handlers -------------------- */
 
