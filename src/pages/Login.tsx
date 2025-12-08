@@ -23,8 +23,7 @@ const Login = () => {
     setError("");
     try {
       showLoader();
-      const res = await api.post("/auth/login", {
-        accountType: "email",
+      const res = await api.post("/auth/adminLogin", {
         email,
         password,
         language: "en",

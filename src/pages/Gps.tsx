@@ -9,6 +9,7 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { FiSearch } from "react-icons/fi";
+import Modal from "../components/Modal";
 
 interface Owner {
   _id?: string;
@@ -39,11 +40,11 @@ interface GpsRow {
 }
 
 /* --- Helper: Image with fallback --- */
-const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className?: string }> = ({
-  src,
-  alt,
-  className,
-}) => {
+const ImageWithFallback: React.FC<{
+  src?: string | null;
+  alt?: string;
+  className?: string;
+}> = ({ src, alt, className }) => {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
 
@@ -67,7 +68,7 @@ const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className
 
 /* --- Component --- */
 const Gps: React.FC = () => {
-  const { showApiError } = useAlert();
+  const { showApiError, showAlert } = useAlert();
   const { showLoader, hideLoader } = useLoader();
 
   const [rows, setRows] = useState<GpsRow[]>([]);
@@ -77,8 +78,8 @@ const Gps: React.FC = () => {
 
   // filters
   const [search, setSearch] = useState<string>("");
-  const [debouncedSearch, setDebouncedSearch] = useState<string>(""); 
-  const [debouncedOwnerId, setDebouncedOwnerId] = useState<string>(""); 
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
+  const [debouncedOwnerId, setDebouncedOwnerId] = useState<string>("");
   const [ownerId, setOwnerId] = useState<string>("");
   const [linked, setLinked] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
@@ -86,6 +87,9 @@ const Gps: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>("createdAt");
   const [sortOrder, setSortOrder] = useState<string>("desc");
 
+  const [gpsToAction, setGpsToAction] = useState<GpsRow | null>(null);
+  const [unlinkModalOpen, setUnlinkModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   /* ---------------------- DEBOUNCE SEARCH ---------------------- */
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -109,7 +113,7 @@ const Gps: React.FC = () => {
       const params: any = {
         page,
         limit,
-        search: debouncedSearch || undefined, 
+        search: debouncedSearch || undefined,
         ownerId: debouncedOwnerId || undefined,
         linked: linked || undefined,
         sortBy,
@@ -142,15 +146,76 @@ const Gps: React.FC = () => {
     }
   };
 
+  const handleUnlinkGps = async () => {
+    if (!gpsToAction?.serialNumber) return;
+    try {
+      showLoader();
+      const res = await api.post("/gps/unlink", {
+        serialNumber: gpsToAction.serialNumber,
+      });
+      if (res?.data?.success) {
+        showAlert("success", "GPS unlinked successfully");
+        fetchGps();
+      } else {
+        showAlert("error", "Failed to unlink GPS");
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setUnlinkModalOpen(false);
+    }
+  };
+
+  const handleDeleteGps = async () => {
+    if (!gpsToAction?.serialNumber) return;
+    try {
+      showLoader();
+      const res = await api.post("/gps/delete", {
+        serialNumber: gpsToAction.serialNumber,
+      });
+      if (res?.data?.success) {
+        showAlert("success", "GPS deleted successfully");
+        fetchGps();
+      } else {
+        showAlert("error", "Failed to delete GPS");
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setDeleteModalOpen(false);
+    }
+  };
+
   /* Reset Page When Filters Change */
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, debouncedOwnerId, linked, startDate, endDate, sortBy, sortOrder, limit]);
+  }, [
+    debouncedSearch,
+    debouncedOwnerId,
+    linked,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+    limit,
+  ]);
 
   /* Auto Fetch on Changes */
   useEffect(() => {
     fetchGps();
-  }, [page, limit, debouncedSearch, debouncedOwnerId, linked, startDate, endDate, sortBy, sortOrder]);
+  }, [
+    page,
+    limit,
+    debouncedSearch,
+    debouncedOwnerId,
+    linked,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+  ]);
 
   /* -------- Columns -------- */
   const columns: DataTableColumn<GpsRow>[] = [
@@ -212,14 +277,54 @@ const Gps: React.FC = () => {
     {
       key: "linkedAt",
       label: "Linked At",
-      render: (r) =>
-        r.linkedAt ? new Date(r.linkedAt).toLocaleString() : "—",
+      render: (r) => (r.linkedAt ? new Date(r.linkedAt).toLocaleString() : "—"),
     },
     {
       key: "createdAt",
       label: "Created At",
       render: (r) =>
         r.createdAt ? new Date(r.createdAt).toLocaleString() : "—",
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => (
+        <div className="flex gap-2">
+          {/* UNLINK button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setGpsToAction(r);
+              setUnlinkModalOpen(true);
+            }}
+            disabled={!r.isLinked}
+            className={`px-2 py-1 rounded text-xs border ${
+              r.isLinked
+                ? "border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+                : "border-gray-400 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            Unlink
+          </button>
+
+          {/* DELETE button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setGpsToAction(r);
+              setDeleteModalOpen(true);
+            }}
+            disabled={r.isLinked}
+            className={`px-2 py-1 rounded text-xs border ${
+              r.isLinked
+                ? "border-gray-400 text-gray-400 cursor-not-allowed"
+                : "border-red-600 text-red-600 hover:bg-red-50"
+            }`}
+          >
+            Delete
+          </button>
+        </div>
+      ),
     },
   ];
 
@@ -250,7 +355,9 @@ const Gps: React.FC = () => {
           key={num}
           onClick={() => setPage(num)}
           className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-            page === num ? "bg-[#4F46E5] text-white" : "bg-gray-200 dark:bg-gray-700"
+            page === num
+              ? "bg-[#4F46E5] text-white"
+              : "bg-gray-200 dark:bg-gray-700"
           }`}
         >
           {num}
@@ -259,7 +366,11 @@ const Gps: React.FC = () => {
     }
 
     if (endPage < totalPages - 1)
-      buttons.push(<span key="ellipsis" className="px-2 text-gray-500">...</span>);
+      buttons.push(
+        <span key="ellipsis" className="px-2 text-gray-500">
+          ...
+        </span>
+      );
 
     if (endPage < totalPages)
       buttons.push(
@@ -267,7 +378,9 @@ const Gps: React.FC = () => {
           key={totalPages}
           onClick={() => setPage(totalPages)}
           className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-            page === totalPages ? "bg-[#4F46E5] text-white" : "bg-gray-200 dark:bg-gray-700"
+            page === totalPages
+              ? "bg-[#4F46E5] text-white"
+              : "bg-gray-200 dark:bg-gray-700"
           }`}
         >
           {totalPages}
@@ -330,7 +443,7 @@ const Gps: React.FC = () => {
                 <select
                   value={linked}
                   onChange={(e) => setLinked(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 >
                   <option value="">All</option>
                   <option value="true">Linked</option>
@@ -340,21 +453,25 @@ const Gps: React.FC = () => {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex items-center flex-1 gap-2">
-                  <label className="text-sm text-gray-600 dark:text-gray-300">From</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300">
+                    From
+                  </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                    className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                   />
                 </div>
                 <div className="flex items-center flex-1 gap-2">
-                  <label className="text-sm text-gray-600 dark:text-gray-300">To</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300">
+                    To
+                  </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                    className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                   />
                 </div>
               </div>
@@ -363,7 +480,7 @@ const Gps: React.FC = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 >
                   <option value="createdAt">Sort by Created At</option>
                   <option value="serialNumber">Sort by Serial</option>
@@ -373,7 +490,7 @@ const Gps: React.FC = () => {
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 >
                   <option value="desc">Descending</option>
                   <option value="asc">Ascending</option>
@@ -388,7 +505,11 @@ const Gps: React.FC = () => {
               </div>
             </div>
 
-            <DataTable<GpsRow> data={rows} columns={columns} emptyMessage="No GPS devices found" />
+            <DataTable<GpsRow>
+              data={rows}
+              columns={columns}
+              emptyMessage="No GPS devices found"
+            />
 
             <div className="flex flex-wrap justify-center mt-5 gap-2">
               {renderPaginationButtons()}
@@ -396,6 +517,27 @@ const Gps: React.FC = () => {
           </div>
         </PageWrapper>
       </main>
+      <Modal
+        open={unlinkModalOpen}
+        onClose={() => setUnlinkModalOpen(false)}
+        title="Unlink GPS?"
+        description={`This will unlink GPS device with serial: ${gpsToAction?.serialNumber}. Are you sure?`}
+        confirmText="Yes, Unlink"
+        cancelText="Cancel"
+        confirmColor="danger"
+        onConfirm={handleUnlinkGps}
+      />
+
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete GPS?"
+        description={`This will permanently delete GPS device with serial: ${gpsToAction?.serialNumber}. Are you sure?`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        onConfirm={handleDeleteGps}
+      />
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import PageWrapper from "../components/PageWrapper";
@@ -9,6 +8,7 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { FiSearch } from "react-icons/fi";
+import Modal from "../components/Modal";
 
 interface UserShort {
   _id?: string;
@@ -39,11 +39,11 @@ interface GeofenceRow {
 }
 
 /* --- Small helper: Image with fallback using internal state --- */
-const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className?: string }> = ({
-  src,
-  alt,
-  className,
-}) => {
+const ImageWithFallback: React.FC<{
+  src?: string | null;
+  alt?: string;
+  className?: string;
+}> = ({ src, alt, className }) => {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -52,7 +52,9 @@ const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className
   }, [src]);
 
   if (!src || failed) {
-    return <PhotoIcon className={`${className ?? "w-12 h-12"} text-gray-400`} />;
+    return (
+      <PhotoIcon className={`${className ?? "w-12 h-12"} text-gray-400`} />
+    );
   }
 
   return (
@@ -68,7 +70,7 @@ const ImageWithFallback: React.FC<{ src?: string | null; alt?: string; className
 
 /* --- Component --- */
 const Geofences: React.FC = () => {
-  const { showApiError } = useAlert();
+  const { showApiError, showAlert } = useAlert();
   const { showLoader, hideLoader } = useLoader();
 
   const [rows, setRows] = useState<GeofenceRow[]>([]);
@@ -78,9 +80,9 @@ const Geofences: React.FC = () => {
 
   // Filters
   const [search, setSearch] = useState<string>("");
-  const [debouncedSearch, setDebouncedSearch] = useState<string>(""); 
-  const [debouncedOwnerID, setDebouncedOwnerID] = useState<string>(""); 
-  const [debouncedCreatedBy, setDebouncedCreatedBy] = useState<string>(""); 
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
+  const [debouncedOwnerID, setDebouncedOwnerID] = useState<string>("");
+  const [debouncedCreatedBy, setDebouncedCreatedBy] = useState<string>("");
   const [ownerId, setOwnerId] = useState<string>("");
   const [createdBy, setCreatedBy] = useState<string>("");
 
@@ -95,6 +97,10 @@ const Geofences: React.FC = () => {
   const [modalAnimals, setModalAnimals] = useState<SampleAnimal[]>([]);
   const [modalTitle, setModalTitle] = useState<string>("");
 
+  const [geofenceToDelete, setGeofenceToDelete] = useState<GeofenceRow | null>(
+    null
+  );
+  const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
   /* ---------------------- DEBOUNCING SEARCH ---------------------- */
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -163,16 +169,55 @@ const Geofences: React.FC = () => {
     }
   };
 
+  const handleDeleteGeofence = async () => {
+    if (!geofenceToDelete?._id) return;
+    try {
+      showLoader();
+      const res = await api.delete(`/geofence/${geofenceToDelete._id}`);
+
+      if (res?.data?.success) {
+        showAlert("success", "Geofence deleted");
+        fetchGeofences();
+      } else {
+        showAlert("error", "Delete failed");
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setDeleteModalOpen(false);
+      setGeofenceToDelete(null);
+    }
+  };
   // reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, debouncedOwnerID, debouncedCreatedBy, startDate, endDate, sortBy, sortOrder, limit]);
+  }, [
+    debouncedSearch,
+    debouncedOwnerID,
+    debouncedCreatedBy,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+    limit,
+  ]);
 
   // initial fetch & on page/limit/filter changes
   useEffect(() => {
     fetchGeofences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, debouncedSearch, debouncedOwnerID, debouncedCreatedBy, startDate, endDate, sortBy, sortOrder]);
+  }, [
+    page,
+    limit,
+    debouncedSearch,
+    debouncedOwnerID,
+    debouncedCreatedBy,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+  ]);
 
   // DataTable columns (uses your DataTable component shape)
   const columns: DataTableColumn<GeofenceRow>[] = [
@@ -216,7 +261,9 @@ const Geofences: React.FC = () => {
         <div className="flex justify-end">
           <button
             onClick={() => {
-              setModalAnimals(Array.isArray(r.sampleAnimals) ? r.sampleAnimals : []);
+              setModalAnimals(
+                Array.isArray(r.sampleAnimals) ? r.sampleAnimals : []
+              );
               setModalTitle(r.name || "Sample Animals");
               setModalOpen(true);
             }}
@@ -235,6 +282,22 @@ const Geofences: React.FC = () => {
         r.createdAt
           ? new Date(r.createdAt).toLocaleString(undefined, { timeZone: "UTC" })
           : "N/A",
+    },
+    {
+      key: "delete",
+      label: "Actions",
+      render: (r) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setGeofenceToDelete(r);
+            setDeleteModalOpen(true);
+          }}
+          className="px-3 py-1 rounded-md text-xs border border-red-600 text-red-600 hover:bg-red-50"
+        >
+          Delete
+        </button>
+      ),
     },
   ];
 
@@ -278,7 +341,10 @@ const Geofences: React.FC = () => {
 
     if (endPage < totalPages - 1) {
       buttons.push(
-        <span key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400 select-none">
+        <span
+          key="ellipsis"
+          className="px-2 text-gray-500 dark:text-gray-400 select-none"
+        >
           ...
         </span>
       );
@@ -367,7 +433,9 @@ const Geofences: React.FC = () => {
 
               <div className="flex flex-col sm:flex-row gap-3 items-center w-full">
                 <div className="flex flex-1 flex-row items-center w-full">
-                  <label className="text-sm text-gray-600 dark:text-gray-300 mr-2">From</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300 mr-2">
+                    From
+                  </label>
                   <input
                     type="date"
                     value={startDate}
@@ -376,7 +444,9 @@ const Geofences: React.FC = () => {
                   />
                 </div>
                 <div className="flex flex-1 flex-row items-center w-full">
-                  <label className="text-sm text-gray-600 dark:text-gray-300 mr-2 ml-2">To</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300 mr-2 ml-2">
+                    To
+                  </label>
                   <input
                     type="date"
                     value={endDate}
@@ -423,7 +493,9 @@ const Geofences: React.FC = () => {
             />
 
             {/* Pagination */}
-            <div className="flex flex-wrap justify-center mt-5 gap-2">{renderPaginationButtons()}</div>
+            <div className="flex flex-wrap justify-center mt-5 gap-2">
+              {renderPaginationButtons()}
+            </div>
           </div>
         </PageWrapper>
       </main>
@@ -441,7 +513,9 @@ const Geofences: React.FC = () => {
         >
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-4xl border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{modalTitle}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {modalTitle}
+              </h2>
               <div>
                 <button
                   onClick={() => setModalOpen(false)}
@@ -453,7 +527,9 @@ const Geofences: React.FC = () => {
             </div>
 
             {modalAnimals.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400">No animals to show</div>
+              <div className="text-center text-gray-500 dark:text-gray-400">
+                No animals to show
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {modalAnimals.map((a) => (
@@ -474,7 +550,9 @@ const Geofences: React.FC = () => {
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {a.uniqueAnimalId || "—"}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{a.gender || "—"}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {a.gender || "—"}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -482,6 +560,24 @@ const Geofences: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete Geofence?"
+        description={
+          geofenceToDelete?.name
+            ? `This will permanently delete geofence "${geofenceToDelete.name}". Are you sure?`
+            : "This will permanently delete geofence. Are you sure?"
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        onConfirm={() => {
+          setDeleteModalOpen(false);
+          handleDeleteGeofence();
+        }}
+      />
     </div>
   );
 };

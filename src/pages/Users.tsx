@@ -6,6 +6,8 @@ import { useLoader } from "../context/LoaderContext";
 import Header from "../components/Header";
 import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
+import { useNavigate } from "react-router-dom";
+import Modal from "../components/Modal";
 
 interface User {
   _id: string | undefined;
@@ -24,13 +26,32 @@ const Users: React.FC = () => {
   const [limit] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
-  const [debouncedSearch, setDebouncedSearch] = useState<string>(""); 
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [loggedUser, setLoggedUser] = useState<any>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(handler);
   }, [search]);
+
+  useEffect(() => {
+    const fetchLoggedUser = async () => {
+      try {
+        const res = await api.get("/auth/myDetails");
+        if (res?.data?.success && res.data.user) {
+          setLoggedUser(res.data.user);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchLoggedUser();
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -54,7 +75,7 @@ const Users: React.FC = () => {
     } finally {
       hideLoader();
     }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, debouncedSearch, role]);
 
   useEffect(() => {
@@ -92,8 +113,74 @@ const Users: React.FC = () => {
       render: (u) =>
         u.createdAt ? new Date(u.createdAt).toLocaleString() : "N/A",
     },
+    {
+      key: "actions",
+      label: "Actions",
+      className: "text-right",
+      render: (u) => {
+        const allowed = canDeleteUser(u);
+
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!allowed) return; // ❗ stops modal open when disabled
+              setUserToDelete(u);
+              setDeleteModalOpen(true);
+            }}
+            disabled={!allowed}
+            className={`rounded-lg px-3 py-1 text-sm font-medium border transition
+              ${
+                allowed
+                  ? "border-red-500 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                  : "border-gray-400 text-gray-400 bg-gray-200 cursor-not-allowed"
+              }`}
+          >
+            Delete
+          </button>
+        );
+      },
+    },
   ];
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete?._id) return;
+
+    try {
+      showLoader();
+
+      const res = await api.delete(`/auth/${userToDelete._id}`);
+      if (res?.data?.success) {
+        // success
+        fetchUsers();
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const canDeleteUser = (target: User): boolean => {
+    if (!loggedUser || !target) return false;
+
+    // superadmin rules
+    if (loggedUser.role === "superadmin") {
+      if (loggedUser._id === target._id) return false; // can't delete self
+      if (target.role === "superadmin") return false; // can't delete other superadmins
+      return true;
+    }
+
+    // admin rules
+    if (loggedUser.role === "admin") {
+      if (target.role === "admin") return false; // can't delete admins
+      if (target.role === "superadmin") return false; // can't delete superadmins
+      return true; // can delete owner & assistant
+    }
+
+    // others can't delete anything
+    return false;
+  };
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Sidebar />
@@ -143,8 +230,12 @@ const Users: React.FC = () => {
             <DataTable<User>
               data={users}
               columns={columns}
-              onRowClick={(user) => console.log("Row clicked:", user)}
               emptyMessage="No users found"
+              onRowClick={(row) => {
+                if (row.role == "owner" || row.role == "assistant") {
+                  navigate(`/user/${row._id}`);
+                }
+              }}
             />
 
             {/* Pagination */}
@@ -229,6 +320,30 @@ const Users: React.FC = () => {
           </div>
         </PageWrapper>
       </main>
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
+        title="Delete User?"
+        description={
+          userToDelete?.role === "owner"
+            ? `This will permanently delete the owner ${
+                userToDelete?.name ?? ""
+              } and ALL related animals, assistants, GPS devices, and geofences. Are you sure?`
+            : `This will permanently delete the ${
+                userToDelete?.role ?? "user"
+              } ${userToDelete?.name ?? ""}. Are you sure?`
+        }
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        onConfirm={() => {
+          setDeleteModalOpen(false);
+          handleDeleteUser();
+        }}
+      />
     </div>
   );
 };

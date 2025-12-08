@@ -9,6 +9,8 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { FiSearch } from "react-icons/fi";
 import { PhotoIcon } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
+import Modal from "../components/Modal";
 interface AnimalOwner {
   _id?: string;
   name?: string;
@@ -50,13 +52,13 @@ interface AnimalTypeOption {
   category: "farm" | "pet";
 }
 
-const FALLBACK_IMG = <PhotoIcon className="w-16 h-16 text-gray-400" />; 
+const FALLBACK_IMG = <PhotoIcon className="w-16 h-16 text-gray-400" />;
 
 const Animals: React.FC = () => {
-  const { showApiError } = useAlert();
+  const { showApiError, showAlert } = useAlert();
   const { showLoader, hideLoader } = useLoader();
+  const navigate = useNavigate();
 
-  
   const [animals, setAnimals] = useState<AnimalRow[]>([]);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
@@ -69,16 +71,15 @@ const Animals: React.FC = () => {
   const [typeId, setTypeId] = useState<string>("");
   const [gender, setGender] = useState<string>("");
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-
   const [typeOptions, setTypeOptions] = useState<AnimalTypeOption[]>([]);
 
-
-  const [sortBy,] = useState<string>("");
-
+  const [sortBy] = useState<string>("");
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -98,9 +99,28 @@ const Animals: React.FC = () => {
         setTypeOptions([]);
       }
     } catch (err) {
-
       showApiError(err);
       setTypeOptions([]);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAnimalId) return;
+    try {
+      showLoader();
+      const res = await api.delete(`/animals/${selectedAnimalId}`);
+      if (res?.data?.success) {
+        showAlert("success", "Animal deleted");
+        fetchAnimals();
+      } else {
+        showAlert("error", "Delete failed");
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setDeleteModalOpen(false);
+      setSelectedAnimalId(null);
     }
   };
 
@@ -141,12 +161,21 @@ const Animals: React.FC = () => {
   // reset page when filters/search change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, status, category, typeId, gender, startDate, endDate, limit]);
+  }, [
+    debouncedSearch,
+    status,
+    category,
+    typeId,
+    gender,
+    startDate,
+    endDate,
+    limit,
+  ]);
 
   // initial fetch for types + data
   useEffect(() => {
     fetchAnimalTypes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // only once
 
   // fetch animals when page, limit or filters change
@@ -181,7 +210,7 @@ const Animals: React.FC = () => {
                 alt={r.name || r.uniqueAnimalId || "animal"}
                 onError={(e: any) => {
                   if (e?.currentTarget?.src !== FALLBACK_IMG) {
-                   src = null
+                    src = null;
                   }
                 }}
                 className="w-12 h-12 rounded-md object-cover border"
@@ -260,6 +289,22 @@ const Animals: React.FC = () => {
           ? // show UTC date/time so server date isn't shifted by client TZ
             new Date(r.createdAt).toLocaleString(undefined, { timeZone: "UTC" })
           : "N/A",
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedAnimalId(r._id);
+            setDeleteModalOpen(true);
+          }}
+          className="px-3 py-1 rounded-md border border-red-600 text-red-600 hover:bg-red-50 text-xs"
+        >
+          Delete
+        </button>
+      ),
     },
   ];
 
@@ -461,9 +506,7 @@ const Animals: React.FC = () => {
             <DataTable<AnimalRow>
               data={animals}
               columns={columns}
-              onRowClick={(row) => {
-                // Example row click - navigate or open detail modal
-              }}
+              onRowClick={(row) => navigate(`/animal/${row._id}`)}
               emptyMessage="No animals found"
             />
 
@@ -474,6 +517,16 @@ const Animals: React.FC = () => {
           </div>
         </PageWrapper>
       </main>
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete Animal?"
+        description="This will permanently delete this animal. Are you sure?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 };

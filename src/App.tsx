@@ -21,6 +21,8 @@ import Geofences from "./pages/Geofences";
 import Breeds from "./pages/Breeds";
 import Slides from "./pages/Slides";
 import Gps from "./pages/Gps";
+import UserDetails from "./pages/UserDetails";
+import AnimalDetails from "./pages/AnimalDetails";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -117,6 +119,8 @@ function App() {
                       </PrivateRoute>
                     }
                   />
+                    <Route path="/user/:id" element={<UserDetails />} />
+                    <Route path="/animal/:id" element={<AnimalDetails />} />
                 </Routes>
               </Router>
             </LoaderProvider>
