@@ -23,6 +23,11 @@ import Slides from "./pages/Slides";
 import Gps from "./pages/Gps";
 import UserDetails from "./pages/UserDetails";
 import AnimalDetails from "./pages/AnimalDetails";
+import Products from "./pages/Products";
+import AddProduct from "./pages/AddProduct";
+import ProductDetails from "./pages/ProductDetail";
+import ProductEdit from "./pages/ProductEdit";
+import Orders from "./pages/Orders";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -116,6 +121,47 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Slides />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/products"
+                    element={
+                      <PrivateRoute>
+                        <Products />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/products/new"
+                    element={
+                      <PrivateRoute>
+                        <AddProduct />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/products/:id"
+                    element={
+                      <PrivateRoute>
+                        <ProductDetails />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/products/:id/edit"
+                    element={
+                      <PrivateRoute>
+                        <ProductEdit />
+                      </PrivateRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/orders"
+                    element={
+                      <PrivateRoute>
+                        <Orders />
                       </PrivateRoute>
                     }
                   />
