@@ -10,6 +10,7 @@ import { FiSearch } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import { PhotoIcon } from "@heroicons/react/24/outline";
+import FilterDropdown from "../components/FilterDropdown";
 
 interface ProductRow {
   _id: string;
@@ -419,7 +420,7 @@ const [debouncedMaxPrice, setDebouncedMaxPrice] = useState("");
                   placeholder="Currency"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 />
               </div>
 
@@ -428,36 +429,39 @@ const [debouncedMaxPrice, setDebouncedMaxPrice] = useState("");
                   placeholder="Min Price"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 />
                 <input
                   placeholder="Max Price"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 w-full">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="createdAt">Sort by Created At</option>
-                  <option value="price">Sort by Price</option>
-                  <option value="name">Sort by Name</option>
-                </select>
+<FilterDropdown
+  label="Sort by Created At"
+  value={sortBy}
+  options={[
+    { label: "Sort by Created At", value: "createdAt" },
+    { label: "Sort by Price", value: "price" },
+    { label: "Sort by Name", value: "name" },
+  ]}
+  onChange={(val) => setSortBy(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
 
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
-                </select>
-
+<FilterDropdown
+  label="Descending"
+  value={sortOrder}
+  options={[
+    { label: "Descending", value: "desc" },
+    { label: "Ascending", value: "asc" },
+  ]}
+  onChange={(val) => setSortOrder(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
                 <label className="flex-1 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"

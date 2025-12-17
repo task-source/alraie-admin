@@ -28,6 +28,7 @@ import AddProduct from "./pages/AddProduct";
 import ProductDetails from "./pages/ProductDetail";
 import ProductEdit from "./pages/ProductEdit";
 import Orders from "./pages/Orders";
+import OrderDetails from "./pages/OrderDetails";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -167,6 +168,7 @@ function App() {
                   />
                     <Route path="/user/:id" element={<UserDetails />} />
                     <Route path="/animal/:id" element={<AnimalDetails />} />
+                    <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
                 </Routes>
               </Router>
             </LoaderProvider>

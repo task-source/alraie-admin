@@ -9,6 +9,7 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import Modal from "../components/Modal"; // <-- Added import for reusable modal component
+import FilterDropdown from "../components/FilterDropdown";
 
 type Category = "farm" | "pet" | "";
 
@@ -450,16 +451,19 @@ const AnimalTypes: React.FC = () => {
 
           {/* Filters + Add + Bulk Upload */}
           <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4 w-full">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as Category)}
-              className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-48 focus:ring-2 focus:ring-[#4F46E5] outline-none"
-            >
-              <option value="">All Categories</option>
-              <option value="farm">Farm</option>
-              <option value="pet">Pet</option>
-            </select>
 
+            <FilterDropdown
+              label="All Categories"
+              value={category}
+              options={[
+                { label: "All Categories", value: "" },
+                { label: "Farm", value: "farm" },
+                { label: "Pet", value: "pet" },
+              ]}
+              onChange={(val) => setCategory(val as Category)}
+              className="dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full sm:w-48 focus:ring-2 focus:ring-[#4F46E5] outline-none"
+
+            />
             <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setBulkModalOpen(true)}

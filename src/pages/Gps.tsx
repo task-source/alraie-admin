@@ -10,6 +10,7 @@ import { DataTable, DataTableColumn } from "../components/DataTable";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { FiSearch } from "react-icons/fi";
 import Modal from "../components/Modal";
+import FilterDropdown from "../components/FilterDropdown";
 
 interface Owner {
   _id?: string;
@@ -440,15 +441,17 @@ const Gps: React.FC = () => {
                   className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
                 />
 
-                <select
-                  value={linked}
-                  onChange={(e) => setLinked(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="">All</option>
-                  <option value="true">Linked</option>
-                  <option value="false">Unlinked</option>
-                </select>
+<FilterDropdown
+  label="All"
+  value={linked}
+  options={[
+    { label: "All", value: "" },
+    { label: "Linked", value: "true" },
+    { label: "Unlinked", value: "false" },
+  ]}
+  onChange={(val) => setLinked(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -477,25 +480,28 @@ const Gps: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="createdAt">Sort by Created At</option>
-                  <option value="serialNumber">Sort by Serial</option>
-                  <option value="linkedAt">Sort by Linked At</option>
-                </select>
+              <FilterDropdown
+  label="Sort by Created At"
+  value={sortBy}
+  options={[
+    { label: "Sort by Created At", value: "createdAt" },
+    { label: "Sort by Serial", value: "serialNumber" },
+    { label: "Sort by Linked At", value: "linkedAt" },
+  ]}
+  onChange={(val) => setSortBy(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
 
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
-                </select>
-
+<FilterDropdown
+  label="Descending"
+  value={sortOrder}
+  options={[
+    { label: "Descending", value: "desc" },
+    { label: "Ascending", value: "asc" },
+  ]}
+  onChange={(val) => setSortOrder(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
                 <button
                   onClick={fetchGps}
                   className="flex-1 bg-[#4F46E5] hover:bg-[#0000CC] text-white font-medium rounded-lg px-4 py-2 text-sm"

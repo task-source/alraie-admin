@@ -9,7 +9,17 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import Modal from "../components/Modal";
+import FilterDropdown from "../components/FilterDropdown";
 
+const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
+  pending: ["processing", "cancelled"],
+  paid: ["processing", "cancelled", "refunded"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+  refunded: [],
+};
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
 /* -------------------------------------------------------------------------- */
@@ -95,6 +105,34 @@ interface GPSRow {
     uniqueAnimalId?: string;
     name?: string;
   };
+}
+
+interface OrderItem {
+  productId: string;
+  productName: string;
+  productImage?: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+  currency: string;
+}
+
+interface OrderRow {
+  _id: string;
+  userId: string;
+  items: OrderItem[];
+  subtotal: number;
+  shippingFee: number;
+  taxAmount: number;
+  total: number;
+  currency: string;
+  status: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  paymentReference?: string | null;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -204,6 +242,41 @@ const UserDetailsPage: React.FC = () => {
   const [assistantsPage, setAssistantsPage] = useState<number>(1);
   const [assistantsTotalPages, setAssistantsTotalPages] = useState<number>(1);
   const [assistantsSearch, setAssistantsSearch] = useState<string>("");
+
+  /* ------------------------- ORDERS STATE ------------------------- */
+
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersLimit] = useState(10);
+  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
+
+  /* Filters */
+  const [orderSearch, setOrderSearch] = useState("");
+  const [debouncedOrderSearch, setDebouncedOrderSearch] = useState("");
+
+  const [orderStatus, setOrderStatus] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [currency, setCurrency] = useState("");
+
+  const [minTotal, setMinTotal] = useState("");
+  const [maxTotal, setMaxTotal] = useState("");
+
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const [orderSort, setOrderSort] = useState("");
+
+  const [orderToUpdate, setOrderToUpdate] = useState<OrderRow | null>(null);
+  const [newOrderStatus, setNewOrderStatus] = useState<string>("");
+  const [orderStatusModalOpen, setOrderStatusModalOpen] = useState(false);
+
+  const [productId, setProductId] = useState("");
+  const [orderProductsModalOpen, setOrderProductsModalOpen] = useState(false);
+  const [orderForProducts, setOrderForProducts] = useState<OrderRow | null>(
+    null
+  );
+
   const [debouncedAssistantsSearch, setDebouncedAssistantsSearch] =
     useState<string>("");
 
@@ -276,6 +349,10 @@ const UserDetailsPage: React.FC = () => {
   /* -------------------------------------------------------------------------- */
   /*                               DEBOUNCE SEARCH                              */
   /* -------------------------------------------------------------------------- */
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedOrderSearch(orderSearch), 500);
+    return () => clearTimeout(t);
+  }, [orderSearch]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 500);
@@ -360,6 +437,76 @@ const UserDetailsPage: React.FC = () => {
     }
   };
 
+  const handleChangeOrderStatus = async () => {
+    if (!orderToUpdate || !newOrderStatus) return;
+
+    try {
+      showLoader();
+
+      const res = await api.patch(`/orders/${orderToUpdate._id}/status`, {
+        status: newOrderStatus,
+      });
+
+      if (res?.data?.success) {
+        showAlert("success", "Order status updated");
+        fetchOrders();
+      } else {
+        showAlert("error", "Status update failed");
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+      setOrderStatusModalOpen(false);
+      setOrderToUpdate(null);
+      setNewOrderStatus("");
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!user?._id) return;
+
+    try {
+      showLoader();
+
+      const params: any = {
+        userId: user._id,
+        page: ordersPage,
+        limit: ordersLimit,
+
+        search: debouncedOrderSearch || undefined,
+        status: orderStatus || undefined,
+        paymentStatus: paymentStatus || undefined,
+        paymentMethod: paymentMethod || undefined,
+        productId: productId || undefined,
+        currency: currency || undefined,
+
+        minTotal: minTotal || undefined,
+        maxTotal: maxTotal || undefined,
+
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+
+        sort: orderSort || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (k) => params[k] === undefined && delete params[k]
+      );
+
+      const res = await api.get("/orders/admin", { params });
+
+      if (res?.data?.success) {
+        setOrders(res.data.items || []);
+        setOrdersTotalPages(res.data.totalPages || 1);
+      }
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      hideLoader();
+    }
+  };
+
   /* -------------------------------------------------------------------------- */
   /*                          RESET PAGE ON FILTER CHANGE                        */
   /* -------------------------------------------------------------------------- */
@@ -377,6 +524,21 @@ const UserDetailsPage: React.FC = () => {
     toAge,
     sort,
     animalsLimit,
+  ]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [
+    debouncedOrderSearch,
+    orderStatus,
+    paymentStatus,
+    paymentMethod,
+    currency,
+    minTotal,
+    maxTotal,
+    fromDate,
+    toDate,
+    orderSort,
   ]);
 
   /* -------------------------------------------------------------------------- */
@@ -399,6 +561,24 @@ const UserDetailsPage: React.FC = () => {
     fromAge,
     toAge,
     sort,
+  ]);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    fetchOrders();
+  }, [
+    user,
+    ordersPage,
+    debouncedOrderSearch,
+    orderStatus,
+    paymentStatus,
+    paymentMethod,
+    currency,
+    minTotal,
+    maxTotal,
+    fromDate,
+    toDate,
+    orderSort,
   ]);
 
   const fetchGeofences = async () => {
@@ -625,6 +805,212 @@ const UserDetailsPage: React.FC = () => {
     },
   ];
 
+  const orderColumns: DataTableColumn<OrderRow>[] = [
+    {
+      key: "_id",
+      label: "Order ID",
+      render: (o) => <span className="font-mono text-xs">{o._id}</span>,
+    },
+    {
+      key: "items",
+      label: "Items",
+      render: (o) => o.items.length,
+    },
+    {
+      key: "total",
+      label: "Total",
+      render: (o) => `${o.total.toLocaleString()} ${o.currency}`,
+    },
+    {
+      key: "products",
+      label: "Products",
+      render: (o) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setOrderForProducts(o);
+            setOrderProductsModalOpen(true);
+          }}
+          className="
+            px-3 py-1
+            text-xs
+            rounded-lg
+            border border-gray-300 dark:border-gray-600
+            text-gray-700 dark:text-gray-200
+            hover:bg-gray-100 dark:hover:bg-gray-700
+            transition
+          "
+        >
+          View Products ({o.items.length})
+        </button>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (o) => (
+        <span className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700">
+          {o.status}
+        </span>
+      ),
+    },
+    {
+      key: "paymentStatus",
+      label: "Payment",
+      render: (o) => o.paymentStatus,
+    },
+    {
+      key: "paymentMethod",
+      label: "Method",
+      render: (o) => o.paymentMethod,
+    },
+    {
+      key: "createdAt",
+      label: "Created",
+      render: (o) => new Date(o.createdAt).toLocaleString(),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (o) => {
+        const allowedNext = ORDER_STATUS_TRANSITIONS[o.status] || [];
+
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOrderToUpdate(o);
+              setNewOrderStatus("");
+              setOrderStatusModalOpen(true);
+            }}
+            disabled={allowedNext.length === 0}
+            className={`px-3 py-1 text-xs rounded-lg border transition
+              ${
+                allowedNext.length === 0
+                  ? "border-gray-400 text-gray-400 cursor-not-allowed"
+                  : "border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white"
+              }
+            `}
+          >
+            Change Status
+          </button>
+        );
+      },
+    },
+  ];
+
+  const renderOrdersPagination = () => {
+    if (ordersTotalPages <= 1) return null;
+
+    const buttons: React.ReactNode[] = [];
+    const current = ordersPage;
+    const total = ordersTotalPages;
+
+    const start = Math.max(1, current - 1);
+    const end = Math.min(total, current + 1);
+
+    // Prev
+    buttons.push(
+      <button
+        key="prev"
+        onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
+        disabled={current === 1}
+        className={`px-3 py-1 rounded-md text-sm font-medium transition
+          ${
+            current === 1
+              ? "bg-gray-300 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+              : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+          }`}
+      >
+        Prev
+      </button>
+    );
+
+    // First page
+    if (start > 1) {
+      buttons.push(
+        <button
+          key={1}
+          onClick={() => setOrdersPage(1)}
+          className="px-3 py-1 rounded-md text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          1
+        </button>
+      );
+
+      if (start > 2) {
+        buttons.push(
+          <span
+            key="start-ellipsis"
+            className="px-2 text-gray-500 dark:text-gray-400 select-none"
+          >
+            …
+          </span>
+        );
+      }
+    }
+
+    // Middle pages
+    for (let i = start; i <= end; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => setOrdersPage(i)}
+          className={`px-3 py-1 rounded-md text-sm font-medium transition
+            ${
+              i === current
+                ? "bg-[#4F46E5] text-white"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+            }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page
+    if (end < total) {
+      if (end < total - 1) {
+        buttons.push(
+          <span
+            key="end-ellipsis"
+            className="px-2 text-gray-500 dark:text-gray-400 select-none"
+          >
+            …
+          </span>
+        );
+      }
+
+      buttons.push(
+        <button
+          key={total}
+          onClick={() => setOrdersPage(total)}
+          className="px-3 py-1 rounded-md text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          {total}
+        </button>
+      );
+    }
+
+    // Next
+    buttons.push(
+      <button
+        key="next"
+        onClick={() => setOrdersPage((p) => Math.min(total, p + 1))}
+        disabled={current === total}
+        className={`px-3 py-1 rounded-md text-sm font-medium transition
+          ${
+            current === total
+              ? "bg-gray-300 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+              : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+          }`}
+      >
+        Next
+      </button>
+    );
+
+    return buttons;
+  };
   const geofenceColumns: DataTableColumn<GeofenceRow>[] = [
     {
       key: "name",
@@ -1423,18 +1809,19 @@ const UserDetailsPage: React.FC = () => {
                   className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
                 />
 
-                <select
+                <FilterDropdown
+                  label="All Status"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="sold">Sold</option>
-                  <option value="dead">Dead</option>
-                  <option value="transferred">Transferred</option>
-                </select>
-
+                  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                  onChange={setStatus}
+                  options={[
+                    { label: "All Status", value: "" },
+                    { label: "Active", value: "active" },
+                    { label: "Sold", value: "sold" },
+                    { label: "Dead", value: "dead" },
+                    { label: "Transferred", value: "transferred" },
+                  ]}
+                />
                 <input
                   type="text"
                   placeholder="Type key…"
@@ -1446,39 +1833,44 @@ const UserDetailsPage: React.FC = () => {
 
               {/* Row 2 */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <select
+                <FilterDropdown
+                  label="All Vaccination"
                   value={hasVaccinated}
-                  onChange={(e) => setHasVaccinated(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="">All Vaccination</option>
-                  <option value="true">Vaccinated</option>
-                  <option value="false">Not Vaccinated</option>
-                </select>
+                  onChange={setHasVaccinated}
+                  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                  options={[
+                    { label: "All Vaccination", value: "" },
+                    { label: "Vaccinated", value: "true" },
+                    { label: "Not Vaccinated", value: "false" },
+                  ]}
+                />
 
-                <select
-                  value={genderFilter}
-                  onChange={handleGenderChange}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="">Any</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="unknown">Unknown</option>
-                </select>
+                <FilterDropdown
+                  label="Any Gender"
+                  value={genderFilter[0] ?? ""}
+                  onChange={(v) => setGenderFilter(v ? [v] : [])}
+                  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                  options={[
+                    { label: "Any Gender", value: "" },
+                    { label: "Male", value: "male" },
+                    { label: "Female", value: "female" },
+                    { label: "Unknown", value: "unknown" },
+                  ]}
+                />
 
-                <select
-                  value={breedFilter.length ? breedFilter : [""]}
-                  onChange={handleBreedChange}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full min-h-[42px] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                >
-                  <option value="">All</option>
-                  {breedOptions.map((b) => (
-                    <option key={b._id} value={b.key}>
-                      {b.name_en || b.key}
-                    </option>
-                  ))}
-                </select>
+                <FilterDropdown
+                  label="All Breeds"
+                  value={breedFilter[0] ?? ""}
+                  onChange={(v) => setBreedFilter(v ? [v] : [])}
+                  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-[100%] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+                  options={[
+                    { label: "All", value: "" },
+                    ...breedOptions.map((b) => ({
+                      label: b.name_en || b.key,
+                      value: b.key,
+                    })),
+                  ]}
+                />
               </div>
 
               {/* Row 3 */}
@@ -1500,19 +1892,20 @@ const UserDetailsPage: React.FC = () => {
                   />
                 </div>
 
-                <select
+                <FilterDropdown
+                  label="Sort By"
                   value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-                >
-                  <option value="name_asc">Name A → Z</option>
-                  <option value="name_desc">Name Z → A</option>
-                  <option value="date_latest">Latest First</option>
-                  <option value="date_oldest">Oldest First</option>
-                  <option value="age_young_to_old">Young → Old</option>
-                  <option value="age_old_to_young">Old → Young</option>
-                </select>
-
+                  onChange={setSort}
+                  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                  options={[
+                    { label: "Name A → Z", value: "name_asc" },
+                    { label: "Name Z → A", value: "name_desc" },
+                    { label: "Latest First", value: "date_latest" },
+                    { label: "Oldest First", value: "date_oldest" },
+                    { label: "Young → Old", value: "age_young_to_old" },
+                    { label: "Old → Young", value: "age_old_to_young" },
+                  ]}
+                />
                 <button
                   onClick={() => {
                     setAnimalsPage(1);
@@ -1605,36 +1998,39 @@ const UserDetailsPage: React.FC = () => {
                 className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2"
               />
 
-              <select
+              <FilterDropdown
+                label="All Linked"
                 value={gpsLinked}
-                onChange={(e) => setGpsLinked(e.target.value)}
-                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-              >
-                <option value="">All Linked</option>
-                <option value="true">Linked</option>
-                <option value="false">Not Linked</option>
-              </select>
+                onChange={setGpsLinked}
+                className=" dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg  dark:text-white"
+                options={[
+                  { label: "All Linked", value: "" },
+                  { label: "Linked", value: "true" },
+                  { label: "Not Linked", value: "false" },
+                ]}
+              />
 
-              <select
+              <FilterDropdown
+                label="Sort By"
                 value={gpsSortBy}
-                onChange={(e) => setGpsSortBy(e.target.value)}
-                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-              >
-                <option value="">Sort By</option>
-                <option value="serialNumber">Serial Number</option>
-                <option value="createdAt">Created At</option>
-                <option value="linkedAt">Linked At</option>
-              </select>
-
-              <select
+                onChange={setGpsSortBy}
+                className="dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                options={[
+                  { label: "Serial Number", value: "serialNumber" },
+                  { label: "Created At", value: "createdAt" },
+                  { label: "Linked At", value: "linkedAt" },
+                ]}
+              />
+              <FilterDropdown
+                label="Order"
                 value={gpsSortOrder}
-                onChange={(e) => setGpsSortOrder(e.target.value)}
-                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 dark:text-white"
-              >
-                <option value="">Order</option>
-                <option value="asc">ASC</option>
-                <option value="desc">DESC</option>
-              </select>
+                onChange={setGpsSortOrder}
+                className=" dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg dark:text-white"
+                options={[
+                  { label: "ASC", value: "asc" },
+                  { label: "DESC", value: "desc" },
+                ]}
+              />
 
               <button
                 onClick={() => {
@@ -1669,6 +2065,239 @@ const UserDetailsPage: React.FC = () => {
                   {i + 1}
                 </button>
               ))}
+            </div>
+
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mt-12 mb-3">
+              Orders of {user?.name ?? "this user"}
+            </h2>
+            <div className="flex flex-col gap-3 mb-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  placeholder="Search orders..."
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    placeholder-gray-400 dark:placeholder-gray-500
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+                <input
+                  type="text"
+                  placeholder="Product ID..."
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    placeholder-gray-400 dark:placeholder-gray-500
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+
+                <button
+                  onClick={() => {
+                    setOrdersPage(1);
+                    fetchOrders();
+                  }}
+                  className="
+    bg-[#4F46E5] hover:bg-[#0000CC]
+    text-white
+    font-medium
+    rounded-lg
+    px-4 py-2
+    text-sm
+    transition
+  "
+                >
+                  Apply
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <FilterDropdown
+                  label="Order Status"
+                  value={orderStatus}
+                  onChange={setOrderStatus}
+                  className="
+    flex-1
+    bg-white dark:bg-gray-800
+    border border-gray-300 dark:border-gray-700
+    text-sm
+    rounded-lg
+    text-gray-800 dark:text-gray-100
+  "
+                  options={[
+                    { label: "All Status", value: "" },
+                    { label: "Pending", value: "pending" },
+                    { label: "Paid", value: "paid" },
+                    { label: "Processing", value: "processing" },
+                    { label: "Shipped", value: "shipped" },
+                    { label: "Delivered", value: "delivered" },
+                    { label: "Cancelled", value: "cancelled" },
+                    { label: "Refunded", value: "refunded" },
+                  ]}
+                />
+                <FilterDropdown
+                  label="Payment Status"
+                  value={paymentStatus}
+                  onChange={setPaymentStatus}
+                  className="
+    flex-1
+    bg-white dark:bg-gray-800
+    border border-gray-300 dark:border-gray-700
+    text-sm
+    rounded-lg
+    text-gray-800 dark:text-gray-100
+  "
+                  options={[
+                    { label: "All Payments", value: "" },
+                    { label: "Pending", value: "pending" },
+                    { label: "Succeeded", value: "succeeded" },
+                    { label: "Failed", value: "failed" },
+                    { label: "Refunded", value: "refunded" },
+                  ]}
+                />
+
+                <FilterDropdown
+                  label="Payment Method"
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  className="
+    flex-1
+    bg-white dark:bg-gray-800
+    border border-gray-300 dark:border-gray-700
+    text-sm
+    rounded-lg
+    text-gray-800 dark:text-gray-100
+  "
+                  options={[
+                    { label: "All Methods", value: "" },
+                    { label: "Card", value: "card" },
+                    { label: "Cash on Delivery", value: "cod" },
+                    { label: "PayPal", value: "paypal" },
+                    { label: "Other", value: "other" },
+                  ]}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="number"
+                  placeholder="Min Total"
+                  value={minTotal}
+                  onChange={(e) => setMinTotal(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    placeholder-gray-400 dark:placeholder-gray-500
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+                <input
+                  type="number"
+                  placeholder="Max Total"
+                  value={maxTotal}
+                  onChange={(e) => setMaxTotal(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    placeholder-gray-400 dark:placeholder-gray-500
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="
+    flex-1
+    border border-gray-300 dark:border-gray-700
+    bg-white dark:bg-gray-800
+    text-sm
+    rounded-lg
+    px-3 py-2
+    text-gray-800 dark:text-gray-100
+    focus:ring-2 focus:ring-[#4F46E5]
+    outline-none
+  "
+                />
+
+                <FilterDropdown
+                  label="Sort By"
+                  value={orderSort}
+                  onChange={setOrderSort}
+                  className="
+    flex-1
+    bg-white dark:bg-gray-800
+    border border-gray-300 dark:border-gray-700
+    text-sm
+    rounded-lg
+    text-gray-800 dark:text-gray-100
+  "
+                  options={[
+                    { label: "Default", value: "" },
+                    { label: "Date: Oldest First", value: "date_oldest" },
+                    { label: "Date: Latest First", value: "date_latest" },
+                    { label: "Total: Low → High", value: "total_low_to_high" },
+                    { label: "Total: High → Low", value: "total_high_to_low" },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <DataTable<OrderRow>
+              data={orders}
+              columns={orderColumns}
+              onRowClick={(row) => navigate(`/orders/${row._id}`)}
+              emptyMessage="No orders found for this user"
+            />
+            <div className="flex flex-wrap justify-center mt-4 gap-2">
+              {renderOrdersPagination()}
             </div>
           </div>
         </PageWrapper>
@@ -1756,6 +2385,124 @@ const UserDetailsPage: React.FC = () => {
         </div>
       )}
 
+      {orderProductsModalOpen && orderForProducts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              setOrderProductsModalOpen(false);
+              setOrderForProducts(null);
+            }}
+          />
+
+          {/* Modal */}
+          <div
+            className="
+        relative z-10
+        w-full max-w-3xl
+        max-h-[85vh]
+        mx-3
+        rounded-2xl
+        bg-white dark:bg-gray-900
+        border border-gray-200 dark:border-gray-700
+        shadow-xl
+        flex flex-col
+      "
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Products in Order
+              </h3>
+              <button
+                onClick={() => {
+                  setOrderProductsModalOpen(false);
+                  setOrderForProducts(null);
+                }}
+                className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 overflow-y-auto flex-1">
+              {orderForProducts.items.length === 0 ? (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  No products found in this order.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {orderForProducts.items.map((item) => (
+                    <div
+                      key={item.productId}
+                      className="
+                  flex items-center gap-3
+                  p-3
+                  rounded-lg
+                  border border-gray-200 dark:border-gray-800
+                  bg-gray-50 dark:bg-gray-800/60
+                  cursor-pointer
+                  hover:bg-gray-100 dark:hover:bg-gray-700
+                  transition
+                "
+                      onClick={() => navigate(`/products/${item.productId}`)}
+                    >
+                      {/* Image */}
+
+                      <ImageWithFallback
+                        src={item?.productImage}
+                        alt={item?.productName}
+                        className="w-12 h-12 rounded-md object-cover border border-gray-200 dark:border-gray-700"
+                      />
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {item.productName}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          Product ID: {item.productId}
+                        </div>
+                      </div>
+
+                      {/* Qty / Price */}
+                      <div className="text-xs text-gray-600 dark:text-gray-300 text-right">
+                        <div>Qty: {item.quantity}</div>
+                        <div>
+                          {item.lineTotal.toLocaleString()} {item.currency}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+              <button
+                onClick={() => {
+                  setOrderProductsModalOpen(false);
+                  setOrderForProducts(null);
+                }}
+                className="
+            px-4 py-1.5
+            rounded-lg
+            text-sm
+            font-medium
+            text-gray-700 dark:text-gray-200
+            border border-gray-300 dark:border-gray-700
+            hover:bg-gray-100 dark:hover:bg-gray-800
+          "
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Modal
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -1843,6 +2590,51 @@ const UserDetailsPage: React.FC = () => {
         confirmColor="danger"
         onConfirm={handleDeleteGeofence}
       />
+      <Modal
+        open={orderStatusModalOpen}
+        onClose={() => setOrderStatusModalOpen(false)}
+        title="Change Order Status"
+        description={
+          orderToUpdate ? `Current status: ${orderToUpdate.status}` : ""
+        }
+        confirmText="Update Status"
+        cancelText="Cancel"
+        confirmColor="primary"
+        onConfirm={handleChangeOrderStatus}
+      >
+        {orderToUpdate && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              New Status
+            </label>
+
+            <select
+              value={newOrderStatus}
+              onChange={(e) => setNewOrderStatus(e.target.value)}
+              className="
+          w-full
+          border border-gray-300 dark:border-gray-700
+          bg-white dark:bg-gray-800
+          rounded-lg
+          px-3 py-2
+          text-sm
+          text-gray-800 dark:text-gray-100
+          focus:ring-2 focus:ring-[#4F46E5]
+          outline-none
+        "
+            >
+              <option value="">Select status</option>
+              {(ORDER_STATUS_TRANSITIONS[orderToUpdate.status] || []).map(
+                (status) => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

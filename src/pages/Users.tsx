@@ -8,6 +8,7 @@ import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+import FilterDropdown from "../components/FilterDropdown";
 
 interface User {
   _id: string | undefined;
@@ -203,21 +204,23 @@ const Users: React.FC = () => {
                 className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none dark:text-white"
               />
 
-              <select
+              <FilterDropdown
+                label="All Roles"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="flex-1 border border-gray-300 dark:border-gray-700 
-             bg-white dark:bg-gray-800 
-             text-sm rounded-lg px-3 py-2 w-full sm:w-48 
-             focus:ring-2 focus:ring-[#4F46E5] outline-none
-             text-gray-800 dark:text-white"
-              >
-                <option value="">All Roles</option>
-                <option value="superadmin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="owner">Owner</option>
-                <option value="assistant">Assistant</option>
-              </select>
+                onChange={setRole}
+                className="flex-1 dark:border-gray-700 
+  bg-white dark:bg-gray-800 
+  text-sm rounded-lg w-full sm:w-48 
+  focus:ring-2 focus:ring-[#4F46E5] outline-none
+  text-gray-800 dark:text-white"
+                options={[
+                  { label: "All Roles", value: "" },
+                  { label: "Super Admin", value: "superadmin" },
+                  { label: "Admin", value: "admin" },
+                  { label: "Owner", value: "owner" },
+                  { label: "Assistant", value: "assistant" },
+                ]}
+              />
 
               <button
                 onClick={fetchUsers}

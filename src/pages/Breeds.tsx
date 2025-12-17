@@ -8,6 +8,7 @@ import Header from "../components/Header";
 import { useAlert } from "../context/AlertContext";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import Modal from "../components/Modal"; // <-- Added import for reusable modal component
+import FilterDropdown from "../components/FilterDropdown";
 
 
 interface BreedRow {
@@ -531,49 +532,55 @@ const Breeds: React.FC = () => {
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
                             />
-
-                            <select
-                                value={animalTypeKeyFilter}
-                                onChange={(e) => setAnimalTypeKeyFilter(e.target.value)}
-                                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                            >
-                                <option value="">All Types</option>
-                                {animalTypes.map((t) => (
-                                    <option key={t._id} value={t.key}>
-                                        {t.name_en || t.key}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                            >
-                                <option value="">All Category</option>
-                                <option value="farm">Farm</option>
-                                <option value="pet">Pet</option>
-                            </select>
+<FilterDropdown
+  label="All Types"
+  value={animalTypeKeyFilter}
+  options={[
+    { label: "All Types", value: "" },
+    ...animalTypes.map((t) => ({
+      label: t.name_en || t.key,
+      value: t.key,
+    })),
+  ]}
+  onChange={(val) => setAnimalTypeKeyFilter(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-[100%] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
+<FilterDropdown
+  label="All Category"
+  value={category}
+  options={[
+    { label: "All Category", value: "" },
+    { label: "Farm", value: "farm" },
+    { label: "Pet", value: "pet" },
+  ]}
+  onChange={(val) => setCategory(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-[100%] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 w-full">
 
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                            >
-                                <option value="createdAt">Sort by Created At</option>
-                                <option value="name_en">Sort by Name</option>
-                                <option value="key">Sort by Key</option>
-                            </select>
+                        <FilterDropdown
+  label="Sort by Created At"
+  value={sortBy}
+  options={[
+    { label: "Sort by Created At", value: "createdAt" },
+    { label: "Sort by Name", value: "name_en" },
+    { label: "Sort by Key", value: "key" },
+  ]}
+  onChange={(val) => setSortBy(val)}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-[100%] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
 
-                            <select
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-                                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                            >
-                                <option value="desc">Descending</option>
-                                <option value="asc">Ascending</option>
-                            </select>
+<FilterDropdown
+  label="Descending"
+  value={sortOrder}
+  options={[
+    { label: "Descending", value: "desc" },
+    { label: "Ascending", value: "asc" },
+  ]}
+  onChange={(val) => setSortOrder(val as "asc" | "desc")}
+  className="flex-1 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg w-full h-[100%] focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
+/>
                             <button
                                 onClick={() => {
                                     // re-fetch (apply)

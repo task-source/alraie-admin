@@ -11,6 +11,7 @@ import { FiSearch } from "react-icons/fi";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+import FilterDropdown from "../components/FilterDropdown";
 interface AnimalOwner {
   _id?: string;
   name?: string;
@@ -420,28 +421,31 @@ const Animals: React.FC = () => {
                     <FiSearch />
                   </div>
                 </div>
-                <select
+                <FilterDropdown
+                  label="All Types"
                   value={typeId}
-                  onChange={(e) => setTypeId(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                >
-                  <option value="">All Types</option>
-                  {typeOptions.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name_en || t.key}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTypeId}
+                  className="flex-1 w-full"
+                  options={[
+                    { label: "All Types", value: "" },
+                    ...typeOptions.map((t) => ({
+                      label: t.name_en || t.key,
+                      value: t._id,
+                    })),
+                  ]}
+                />
 
-                <select
+                <FilterDropdown
+                  label="All Category"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                >
-                  <option value="">All Category</option>
-                  <option value="farm">Farm</option>
-                  <option value="pet">Pet</option>
-                </select>
+                  onChange={setCategory}
+                  className="flex-1 w-full"
+                  options={[
+                    { label: "All Category", value: "" },
+                    { label: "Farm", value: "farm" },
+                    { label: "Pet", value: "pet" },
+                  ]}
+                />
               </div>
 
               {/* Date range row */}
@@ -472,29 +476,33 @@ const Animals: React.FC = () => {
 
               {/* right side small filters */}
               <div className="flex flex-1 flex-col sm:flex-row gap-3 items-center w-full">
-                <select
+                <FilterDropdown
+                  label="All Status"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                >
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="sold">Sold</option>
-                  <option value="dead">Dead</option>
-                  <option value="transferred">Transferred</option>
-                </select>
+                  onChange={setStatus}
+                  className="flex-1 w-full"
+                  options={[
+                    { label: "All Status", value: "" },
+                    { label: "Active", value: "active" },
+                    { label: "Sold", value: "sold" },
+                    { label: "Dead", value: "dead" },
+                    { label: "Transferred", value: "transferred" },
+                  ]}
+                />
 
-                <select
+
+                <FilterDropdown
+                  label="Any Gender"
                   value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-[#4F46E5] outline-none text-gray-800 dark:text-white"
-                >
-                  <option value="">Any Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="unknown">Unknown</option>
-                </select>
-
+                  onChange={setGender}
+                  className="flex-1 w-full"
+                  options={[
+                    { label: "Any Gender", value: "" },
+                    { label: "Male", value: "male" },
+                    { label: "Female", value: "female" },
+                    { label: "Unknown", value: "unknown" },
+                  ]}
+                />
                 <button
                   onClick={() => fetchAnimals()}
                   className="flex-1 bg-[#4F46E5] hover:bg-[#0000CC] text-white font-medium rounded-lg px-4 py-2 text-sm w-full transition"

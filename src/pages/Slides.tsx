@@ -381,7 +381,7 @@ const Slides: React.FC = () => {
               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
                 <button
                   onClick={handleCloseDialog}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 w-full sm:w-auto"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 w-full sm:w-auto dark:text-white"
                 >
                   Cancel
                 </button>
