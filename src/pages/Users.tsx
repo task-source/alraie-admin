@@ -9,6 +9,7 @@ import { DataTable, DataTableColumn } from "../components/DataTable";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import FilterDropdown from "../components/FilterDropdown";
+import { PhotoIcon } from "@heroicons/react/24/outline";
 
 interface User {
   _id: string | undefined;
@@ -17,6 +18,7 @@ interface User {
   role: string | undefined;
   createdAt: string | undefined;
   phone: string | undefined;
+  profileImage: string | undefined;
 }
 
 const Users: React.FC = () => {
@@ -87,7 +89,33 @@ const Users: React.FC = () => {
     fetchUsers();
   }, [fetchUsers]);
 
+   const ImageWithFallback: React.FC<{ src?: string }> = ({ src }) => {
+    const [failed, setFailed] = useState(false);
+  
+    if (!src || failed) {
+      return (
+        <div className="w-12 h-12 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <PhotoIcon className="w-6 h-6 text-gray-400" />
+        </div>
+      );
+    }
+  
+    return (
+      <img
+        src={src}
+        onError={() => setFailed(true)}
+        className="w-12 h-12 rounded-md object-cover border border-gray-200 dark:border-gray-700"
+        alt="product"
+      />
+    );
+  };
+
   const columns: DataTableColumn<User>[] = [
+    {
+      key: "image",
+      label: "Profiile Image",
+      render: (i) => <ImageWithFallback src={i.profileImage} />,
+    },
     {
       key: "id",
       label: "ID",

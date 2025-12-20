@@ -29,6 +29,8 @@ import ProductDetails from "./pages/ProductDetail";
 import ProductEdit from "./pages/ProductEdit";
 import Orders from "./pages/Orders";
 import OrderDetails from "./pages/OrderDetails";
+import AboutUs from "./pages/AboutUs";
+import AccountDeletionReasons from "./pages/AccountDeletionReasons";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -74,6 +76,22 @@ function App() {
                     element={
                       <PrivateRoute>
                         <TermsAndConditions />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/aboutUs"
+                    element={
+                      <PrivateRoute>
+                        <AboutUs />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/accountDeletionReasons"
+                    element={
+                      <PrivateRoute>
+                        <AccountDeletionReasons />
                       </PrivateRoute>
                     }
                   />

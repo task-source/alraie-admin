@@ -69,7 +69,7 @@ type AnimalStatusSummary = {
   active: number;
   sold: number;
   dead: number;
-  transferred: number;
+  lost: number;
   total: number;
 };
 
@@ -195,7 +195,7 @@ const Dashboard: React.FC = () => {
         { label: "Active", value: animalStatusSummary.active ?? 0 },
         { label: "Sold", value: animalStatusSummary.sold ?? 0 },
         { label: "Dead", value: animalStatusSummary.dead ?? 0 },
-        { label: "Transferred", value: animalStatusSummary.transferred ?? 0 },
+        { label: "Lost", value: animalStatusSummary.lost ?? 0 },
       ]
     : [];
 

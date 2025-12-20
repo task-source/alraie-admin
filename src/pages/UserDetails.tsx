@@ -30,6 +30,7 @@ interface User {
   role: string | undefined;
   createdAt: string | undefined;
   phone: string | undefined;
+  profileImage: string | undefined;
 }
 
 interface UserDetails {
@@ -49,6 +50,9 @@ interface UserDetails {
   phone?: string | null;
   fullPhone?: string | null;
   countryCode?: string | null;
+  profileImage?: string | undefined;
+  country?: string | null;
+  preferredCurrency?: string | null;
 }
 
 interface AnimalRow {
@@ -56,7 +60,7 @@ interface AnimalRow {
   uniqueAnimalId?: string;
   name?: string;
   gender?: string;
-  animalStatus?: "active" | "sold" | "dead" | "transferred" | string;
+  animalStatus?: "active" | "sold" | "dead" | "lost" | string;
   typeKey?: string;
   typeNameEn?: string;
   breedKey?: string;
@@ -1158,6 +1162,17 @@ const UserDetailsPage: React.FC = () => {
 
   const assistantColumns: DataTableColumn<User>[] = [
     {
+      key: "image",
+      label: "Image",
+      render: (a) => (
+        <ImageWithFallback
+          src={a.profileImage}
+          alt={a.name}
+          className="w-12 h-12 rounded-md object-cover"
+        />
+      ),
+    },
+    {
       key: "name",
       label: "Name",
       render: (u) => u.name || "—",
@@ -1556,7 +1571,20 @@ const UserDetailsPage: React.FC = () => {
             </div>
 
             {/* -------------------------- USER CARD -------------------------- */}
-
+            {user?.profileImage ? (
+              <div className="mb-8 w-full overflow-x-auto whitespace-nowrap no-scrollbar">
+                  <ImageWithFallback
+                    src={user.profileImage}
+                    alt={user?.name ?? "User"}
+                    className="w-12 h-12 rounded-md object-cover"
+                  />
+              </div>
+            ) : (
+              <div className="mb-8 flex items-center gap-3 text-gray-400">
+                <PhotoIcon className="w-10 h-10" />
+                No image available
+              </div>
+            )}
             <div className="mb-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4 sm:p-6">
               {user ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -1620,6 +1648,24 @@ const UserDetailsPage: React.FC = () => {
                     </div>
                     <div className="text-gray-900 dark:text-gray-100">
                       {user.countryCode || "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                      Country
+                    </div>
+                    <div className="text-gray-900 dark:text-gray-100">
+                      {user.country || "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                      Preferred Currency
+                    </div>
+                    <div className="text-gray-900 dark:text-gray-100">
+                      {user.preferredCurrency || "—"}
                     </div>
                   </div>
 
@@ -1819,7 +1865,7 @@ const UserDetailsPage: React.FC = () => {
                     { label: "Active", value: "active" },
                     { label: "Sold", value: "sold" },
                     { label: "Dead", value: "dead" },
-                    { label: "Transferred", value: "transferred" },
+                    { label: "Lost", value: "lost" },
                   ]}
                 />
                 <input

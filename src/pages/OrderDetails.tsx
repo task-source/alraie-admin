@@ -75,6 +75,7 @@ interface UserDetails {
   _id: string;
   email?: string;
   name?: string;
+  profileImage?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -274,10 +275,17 @@ const OrderDetailsPage: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
                   User
                 </h2>
+                <div className="flex items-center gap-4 mb-2">
+                <div className="overflow-x-auto whitespace-nowrap no-scrollbar">
+                    <ImageWithFallback
+                      src={user.profileImage}
+                    />
+                  </div>
                 <div className="text-sm text-gray-800 dark:text-gray-100 break-all">
                   <div>{user.name || "—"}</div>
                   <div>{user.email || "—"}</div>
                   <div className="text-xs text-gray-500">{user._id}</div>
+                </div>
                 </div>
               </div>
             )}

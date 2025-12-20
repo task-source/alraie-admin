@@ -74,6 +74,7 @@ interface User {
   email?: string;
   phone?: string;
   role?: string;
+  profileImage?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -98,6 +99,34 @@ const AnimalDetails: React.FC = () => {
   /* -------------------------------------------------------------------------- */
   /*                               FETCH ANIMAL                                 */
   /* -------------------------------------------------------------------------- */
+
+  const ImageWithFallback: React.FC<{
+    src?: string;
+    alt?: string;
+    className?: string;
+  }> = ({ src, alt, className }) => {
+    const [failed, setFailed] = useState(false);
+  
+    if (!src || failed) {
+      return (
+        <div className="w-12 h-12 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <PhotoIcon className="w-8 h-8 text-gray-400" />
+        </div>
+      );
+    }
+  
+    return (
+      <img
+        src={src}
+        alt={alt || "image"}
+        onError={() => setFailed(true)}
+        className={
+          className ??
+          "w-12 h-12 rounded-md object-cover border border-gray-200 dark:border-gray-700"
+        }
+      />
+    );
+  };
 
   const fetchAnimal = async () => {
     if (!id) return;
@@ -405,7 +434,14 @@ const AnimalDetails: React.FC = () => {
                 <div className="font-semibold text-gray-800 dark:text-white">
                   Owner Details
                 </div>
-                <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                <div className="flex gap-5 items-center text-sm text-gray-700 dark:text-gray-300 mt-2">
+                  <div className="overflow-x-auto whitespace-nowrap no-scrollbar">
+                    <ImageWithFallback
+                      src={owner.profileImage}
+                      alt={owner?.name ?? "owner"}
+                      className="w-12 h-12 rounded-md object-cover"
+                    />
+                  </div>
                   {owner._id ? `${owner._id}` : ""}
                   {owner.email ? ` - ${owner.email}` : ""}
                   {owner.phone ? ` - ${owner.phone}` : ""}
@@ -426,7 +462,14 @@ const AnimalDetails: React.FC = () => {
                 <div className="font-semibold text-gray-800 dark:text-white">
                   Created By
                 </div>
-                <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                <div className="flex gap-5 items-center text-sm text-gray-700 dark:text-gray-300 mt-2">
+                <div className="overflow-x-auto whitespace-nowrap no-scrollbar">
+                    <ImageWithFallback
+                      src={creator.profileImage}
+                      alt={creator?.name ?? "owner"}
+                      className="w-12 h-12 rounded-md object-cover"
+                    />
+                  </div>
                   {creator._id ? `${creator._id}` : ""}
                   {creator.email ? ` - ${creator.email}` : ""}
                   {creator.phone ? ` - ${creator.phone}` : ""}

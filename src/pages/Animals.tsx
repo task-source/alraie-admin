@@ -486,7 +486,7 @@ const Animals: React.FC = () => {
                     { label: "Active", value: "active" },
                     { label: "Sold", value: "sold" },
                     { label: "Dead", value: "dead" },
-                    { label: "Transferred", value: "transferred" },
+                    { label: "Lost", value: "lost" },
                   ]}
                 />
 

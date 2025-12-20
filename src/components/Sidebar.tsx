@@ -17,6 +17,8 @@ import {
   FaMapMarkerAlt,
   FaShoppingBag,
   FaCartPlus,
+  FaHandshake,
+  FaListUl,
   FaMoneyBill
 } from "react-icons/fa";
 import logo from "../images/logo192.png";
@@ -39,6 +41,8 @@ const menuItems = [
   },
   { text: "Slides", path: "/slides", icon: <FaImages /> },
   { text: "Terms & Conditions", path: "/terms", icon: <FaFileAlt /> },
+  { text: "About Us", path: "/aboutUs", icon: <FaHandshake /> },
+  { text: "Deletion Reasons", path: "/accountDeletionReasons", icon: <FaListUl /> },
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
 ];
 
