@@ -32,6 +32,7 @@ import OrderDetails from "./pages/OrderDetails";
 import AboutUs from "./pages/AboutUs";
 import AccountDeletionReasons from "./pages/AccountDeletionReasons";
 import AnimalReports from "./pages/AnimalReports";
+import DeletedUsers from "./pages/DeletedUsers";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -190,6 +191,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Orders />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/deletedUsers"
+                    element={
+                      <PrivateRoute>
+                        <DeletedUsers />
                       </PrivateRoute>
                     }
                   />

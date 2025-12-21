@@ -1411,7 +1411,9 @@ const UserDetailsPage: React.FC = () => {
 
     try {
       showLoader();
-      const res = await api.delete(`/auth/${id}`);
+      const res = await api.post(`/auth/${id}/delete`,{
+        "reason": "Deleted by admin from user detail page"
+      });
       if (res?.data?.success) {
         showAlert(
           "success",
@@ -1435,7 +1437,9 @@ const UserDetailsPage: React.FC = () => {
 
     try {
       showLoader();
-      const res = await api.delete(`/auth/${assistantToDelete._id}`);
+      const res = await api.post(`/auth/${assistantToDelete._id}/delete`,{
+        "reason": "Assistant Deleted by admin from user detail page"
+      });
 
       if (res?.data?.success) {
         showAlert("success", "Assistant deleted");
@@ -1795,7 +1799,7 @@ const UserDetailsPage: React.FC = () => {
                 onClick={() => {
                   navigate(`/user/${user.ownerId}`);
                 }}
-                className="mt-10 cursor-pointer rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4"
+                className="mt-10 mb-8 cursor-pointer rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4"
               >
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">
                   Owner Details

@@ -225,7 +225,9 @@ const Users: React.FC = () => {
     try {
       showLoader();
 
-      const res = await api.delete(`/auth/${userToDelete._id}`);
+      const res = await api.post(`/auth/${userToDelete._id}/delete`,{
+        "reason": "Deleted by admin from users page"
+      });
       if (res?.data?.success) {
         // success
         fetchUsers();
