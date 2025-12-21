@@ -31,6 +31,7 @@ import Orders from "./pages/Orders";
 import OrderDetails from "./pages/OrderDetails";
 import AboutUs from "./pages/AboutUs";
 import AccountDeletionReasons from "./pages/AccountDeletionReasons";
+import AnimalReports from "./pages/AnimalReports";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -68,6 +69,14 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Animals />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/animalReports"
+                    element={
+                      <PrivateRoute>
+                        <AnimalReports />
                       </PrivateRoute>
                     }
                   />
@@ -184,8 +193,8 @@ function App() {
                       </PrivateRoute>
                     }
                   />
-                    <Route path="/user/:id" element={<UserDetails />} />
-                    <Route path="/animal/:id" element={<AnimalDetails />} />
+                    <Route path="/user/:id" element={<PrivateRoute><UserDetails /></PrivateRoute>} />
+                    <Route path="/animal/:id" element={<PrivateRoute><AnimalDetails /></PrivateRoute>} />
                     <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
                 </Routes>
               </Router>

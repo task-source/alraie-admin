@@ -144,8 +144,6 @@ const Animals: React.FC = () => {
       if (res?.data?.success) {
         // response shape we saw: { pagination: { page, limit, total, totalPages }, data: [] }
         const pagination = res.data.pagination || {};
-        setPage(pagination.page || 1);
-        setLimit(pagination.limit || limit);
         setTotalPages(pagination.totalPages || 1);
         setAnimals(Array.isArray(res.data.data) ? res.data.data : []);
       } else {

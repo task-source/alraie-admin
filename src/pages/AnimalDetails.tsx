@@ -23,6 +23,19 @@ interface Relation {
   name?: string;
 }
 
+interface AnimalReport {
+  _id: string;
+  temperature?: number;
+  heartRate?: number;
+  weight?: number;
+  disease?: string;
+  allergy?: string;
+  vaccinated?: boolean;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface AnimalDetail {
   _id: string;
   uniqueAnimalId?: string;
@@ -37,7 +50,7 @@ interface AnimalDetail {
     _id?: string;
     serialNumber?: string;
   };
-
+  reportId?: string;
   images?: string[];
   animalStatus?: string;
 
@@ -96,6 +109,7 @@ const AnimalDetails: React.FC = () => {
 
   const [gpsUnlinkModalOpen, setGpsUnlinkModalOpen] = useState(false);
   const [gpsDeleteModalOpen, setGpsDeleteModalOpen] = useState(false);
+  const [report, setReport] = useState<AnimalReport | null>(null);
   /* -------------------------------------------------------------------------- */
   /*                               FETCH ANIMAL                                 */
   /* -------------------------------------------------------------------------- */
@@ -158,6 +172,18 @@ const AnimalDetails: React.FC = () => {
     }
   };
 
+  const fetchAnimalReport = async (reportId?: string) => {
+    if (!reportId) return;
+  
+    try {
+      const res = await api.get(`/animalReport/${reportId}`);
+      if (res?.data?.success) {
+        setReport(res.data.data);
+      }
+    } catch {
+      setReport(null);
+    }
+  };
   /* -------------------------------------------------------------------------- */
   /*                           LOAD OWNER + CREATOR                              */
   /* -------------------------------------------------------------------------- */
@@ -188,7 +214,10 @@ const AnimalDetails: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (animal) loadUsers();
+    if (animal) {
+      loadUsers();
+      fetchAnimalReport(animal.reportId);
+    }
   }, [animal]);
 
   /* -------------------------------------------------------------------------- */
@@ -355,6 +384,41 @@ const AnimalDetails: React.FC = () => {
               </div>
             )}
 
+            {report ? (
+              <div className="mb-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5">
+                <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+                  Animal Report
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  {Object.entries({
+                    Temperature: report.temperature ? `${report.temperature} °C` : null,
+                    "Heart Rate": report.heartRate,
+                    Weight: report.weight ? `${report.weight} kg` : null,
+                    Disease: report.disease,
+                    Allergy: report.allergy,
+                    Vaccinated: report.vaccinated ? "Yes" : "No",
+                    Notes: report.notes,
+                    "Reported At": report.createdAt
+                      ? new Date(report.createdAt).toLocaleString()
+                      : null,
+                  }).map(([label, value]) => (
+                    <div key={label}>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        {label}
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100 break-all">
+                        {value ?? "—"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-8 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5 text-sm text-gray-500 dark:text-gray-400">
+                No report available for this animal.
+              </div>
+            )}
             {/* --------------------------------------------------------- */}
             {/* RELATIONS */}
             {/* --------------------------------------------------------- */}

@@ -51,7 +51,7 @@ const ImageWithFallback: React.FC<{
 
   if (!src || failed) {
     return (
-      <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md border">
+      <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md border">
         <PhotoIcon className="w-8 h-8 text-gray-400" />
       </div>
     );

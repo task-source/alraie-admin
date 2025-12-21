@@ -34,7 +34,14 @@ const Users: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [loggedUser, setLoggedUser] = useState<any>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-
+  const [sort, setSort] = useState<string>("date_latest");
+  const [isEmailVerified, setIsEmailVerified] = useState<string>("");
+  const [isPhoneVerified, setIsPhoneVerified] = useState<string>("");
+  const [language, setLanguage] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
+  const [createdFrom, setCreatedFrom] = useState<string>("");
+  const [createdTo, setCreatedTo] = useState<string>("");
+  const [animalType, setAnimalType] = useState<"farm" | "pet" | "">("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,9 +70,24 @@ const Users: React.FC = () => {
       const params: Record<string, any> = {
         page,
         limit,
-        search: debouncedSearch,
+        sort,
       };
+      if (debouncedSearch) params.search = debouncedSearch;
       if (role) params.role = role;
+      if (animalType) params.animalType = animalType;
+      if (language) params.language = language;
+      if (country) params.country = country;
+
+      if (isEmailVerified !== "") {
+        params.isEmailVerified = isEmailVerified === "true";
+      }
+
+      if (isPhoneVerified !== "") {
+        params.isPhoneVerified = isPhoneVerified === "true";
+      }
+
+      if (createdFrom) params.createdFrom = createdFrom;
+      if (createdTo) params.createdTo = createdTo;
 
       const res = await api.get("/admin/users", { params });
 
@@ -79,19 +101,40 @@ const Users: React.FC = () => {
       hideLoader();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, debouncedSearch, role]);
+  }, [page,
+    limit,
+    debouncedSearch,
+    role,
+    sort,
+    isEmailVerified,
+    isPhoneVerified,
+    language,
+    country,
+    createdFrom,
+    createdTo,
+    animalType,]);
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, role]);
+  }, [
+    debouncedSearch,
+    role,
+    sort,
+    isEmailVerified,
+    isPhoneVerified,
+    language,
+    country,
+    createdFrom,
+    createdTo,
+  ]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-   const ImageWithFallback: React.FC<{ src?: string }> = ({ src }) => {
+  const ImageWithFallback: React.FC<{ src?: string }> = ({ src }) => {
     const [failed, setFailed] = useState(false);
-  
+
     if (!src || failed) {
       return (
         <div className="w-12 h-12 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -99,7 +142,7 @@ const Users: React.FC = () => {
         </div>
       );
     }
-  
+
     return (
       <img
         src={src}
@@ -115,6 +158,11 @@ const Users: React.FC = () => {
       key: "image",
       label: "Profiile Image",
       render: (i) => <ImageWithFallback src={i.profileImage} />,
+    },
+    {
+      key: "name",
+      label: "Name",
+      render: (u) => u.name ?? "N/A",
     },
     {
       key: "id",
@@ -159,10 +207,9 @@ const Users: React.FC = () => {
             }}
             disabled={!allowed}
             className={`rounded-lg px-3 py-1 text-sm font-medium border transition
-              ${
-                allowed
-                  ? "border-red-500 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
-                  : "border-gray-400 text-gray-400 bg-gray-200 cursor-not-allowed"
+              ${allowed
+                ? "border-red-500 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                : "border-gray-400 text-gray-400 bg-gray-200 cursor-not-allowed"
               }`}
           >
             Delete
@@ -222,40 +269,123 @@ const Users: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-semibold mb-6 text-gray-800 dark:text-white">
               Users
             </h1>
+            <div className="flex flex-col gap-3 mb-4 w-full">
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 w-full">
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none dark:text-white"
-              />
+              {/* Row 1 */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm rounded-lg px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#4F46E5] outline-none dark:text-white"
+                />
 
-              <FilterDropdown
-                label="All Roles"
-                value={role}
-                onChange={setRole}
-                className="flex-1 dark:border-gray-700 
-  bg-white dark:bg-gray-800 
-  text-sm rounded-lg w-full sm:w-48 
-  focus:ring-2 focus:ring-[#4F46E5] outline-none
-  text-gray-800 dark:text-white"
-                options={[
-                  { label: "All Roles", value: "" },
-                  { label: "Super Admin", value: "superadmin" },
-                  { label: "Admin", value: "admin" },
-                  { label: "Owner", value: "owner" },
-                  { label: "Assistant", value: "assistant" },
-                ]}
-              />
+                <FilterDropdown
+                  label="All Roles"
+                  value={role}
+                  onChange={setRole}
+                  options={[
+                    { label: "All Roles", value: "" },
+                    { label: "Super Admin", value: "superadmin" },
+                    { label: "Admin", value: "admin" },
+                    { label: "Owner", value: "owner" },
+                    { label: "Assistant", value: "assistant" },
+                  ]}
+                  className="w-full sm:w-48 flex-1"
+                />
 
-              <button
-                onClick={fetchUsers}
-                className="bg-[#4F46E5] hover:bg-[#0000CC] text-white font-medium rounded-lg px-4 py-2 text-sm w-full sm:w-auto transition"
-              >
-                Apply
-              </button>
+
+              </div>
+
+              {/* Row 2 */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+
+                <FilterDropdown
+                  label="Email Verified"
+                  value={isEmailVerified}
+                  onChange={setIsEmailVerified}
+                  options={[
+                    { label: "Email Verified (Any)", value: "" },
+                    { label: "Verified", value: "true" },
+                    { label: "Not Verified", value: "false" },
+                  ]}
+                  className="w-full sm:w-48 flex-1"
+                />
+
+                <FilterDropdown
+                  label="Phone Verified"
+                  value={isPhoneVerified}
+                  onChange={setIsPhoneVerified}
+                  options={[
+                    { label: "Phone Verified (Any)", value: "" },
+                    { label: "Verified", value: "true" },
+                    { label: "Not Verified", value: "false" },
+                  ]}
+                  className="w-full sm:w-48 flex-1"
+                />
+
+              </div>
+
+              {/* Row 3 – Date Range */}
+              <div className="flex flex-1 flex-col sm:flex-row gap-3">
+                <input
+                  type="date"
+                  value={createdFrom}
+                  onChange={(e) => setCreatedFrom(e.target.value)}
+                  className="border flex-1 rounded-lg px-3 py-2 text-sm w-full sm:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+                <input
+                  type="date"
+                  value={createdTo}
+                  onChange={(e) => setCreatedTo(e.target.value)}
+                  className="border flex-1 rounded-lg px-3 py-2 text-sm w-full sm:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+                <FilterDropdown
+                  label="Sort By"
+                  value={sort}
+                  onChange={setSort}
+                  options={[
+                    { label: "Newest First", value: "date_latest" },
+                    { label: "Oldest First", value: "date_oldest" },
+                    { label: "Name A–Z", value: "name_asc" },
+                    { label: "Name Z–A", value: "name_desc" },
+                    { label: "Email A–Z", value: "email_asc" },
+                    { label: "Email Z–A", value: "email_desc" },
+                  ]}
+                  className="w-full sm:w-48 flex-1"
+                />
+              </div>
+              <div className="flex flex-1 flex-col sm:flex-row gap-3">
+                <FilterDropdown
+                  label="Animal Type"
+                  value={animalType}
+                  onChange={(v) => setAnimalType(v as any)}
+                  options={[
+                    { label: "Animal Type (Any)", value: "" },
+                    { label: "Farm", value: "farm" },
+                    { label: "Pet", value: "pet" },
+                  ]}
+                  className="w-full sm:w-40 flex-1"
+                />
+                <FilterDropdown
+                  label="Language"
+                  value={language}
+                  onChange={setLanguage}
+                  options={[
+                    { label: "Language (Any)", value: "" },
+                    { label: "English", value: "en" },
+                    { label: "Arabic", value: "ar" },
+                  ]}
+                  className="w-full sm:w-40 flex-1"
+                />
+                <button
+                  onClick={fetchUsers}
+                  className="flex-1 bg-[#4F46E5] hover:bg-[#0000CC] text-white font-medium rounded-lg px-4 py-2 text-sm w-full sm:w-auto transition"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
 
             <DataTable<User>
@@ -274,11 +404,10 @@ const Users: React.FC = () => {
               <button
                 onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                 disabled={page === 1}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-                  page === 1
+                className={`px-3 py-1 rounded-md text-sm font-medium transition ${page === 1
                     ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
                     : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                }`}
+                  }`}
               >
                 Prev
               </button>
@@ -293,11 +422,10 @@ const Users: React.FC = () => {
                     <button
                       key={num}
                       onClick={() => setPage(num)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-                        page === num
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition ${page === num
                           ? "bg-[#4F46E5] text-white"
                           : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {num}
                     </button>
@@ -320,11 +448,10 @@ const Users: React.FC = () => {
                     <button
                       key={totalPages}
                       onClick={() => setPage(totalPages)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-                        page === totalPages
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition ${page === totalPages
                           ? "bg-[#4F46E5] text-white"
                           : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {totalPages}
                     </button>
@@ -339,11 +466,10 @@ const Users: React.FC = () => {
                   setPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={page === totalPages}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition ${
-                  page === totalPages
+                className={`px-3 py-1 rounded-md text-sm font-medium transition ${page === totalPages
                     ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
                     : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                }`}
+                  }`}
               >
                 Next
               </button>
@@ -360,12 +486,10 @@ const Users: React.FC = () => {
         title="Delete User?"
         description={
           userToDelete?.role === "owner"
-            ? `This will permanently delete the owner ${
-                userToDelete?.name ?? ""
-              } and ALL related animals, assistants, GPS devices, and geofences. Are you sure?`
-            : `This will permanently delete the ${
-                userToDelete?.role ?? "user"
-              } ${userToDelete?.name ?? ""}. Are you sure?`
+            ? `This will permanently delete the owner ${userToDelete?.name ?? ""
+            } and ALL related animals, assistants, GPS devices, and geofences. Are you sure?`
+            : `This will permanently delete the ${userToDelete?.role ?? "user"
+            } ${userToDelete?.name ?? ""}. Are you sure?`
         }
         confirmText="Yes, Delete"
         cancelText="Cancel"

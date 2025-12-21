@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SidebarContext";
-import { FiMenu, FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { FiMenu, FiChevronDown, FiChevronRight, FiFile } from "react-icons/fi";
 import {
   FaHome,
   FaUsers,
@@ -27,6 +27,7 @@ const menuItems = [
   { text: "Dashboard", path: "/", icon: <FaHome /> },
   { text: "Users", path: "/users", icon: <FaUsers /> },
   { text: "Animals", path: "/animals", icon: <FaPaw /> },
+  { text: "Animal Reports", path: "/animalReports", icon: <FiFile /> },
   { text: "Animal Type", path: "/animalType", icon: <FaPaw /> },
   { text: "Breeds", path: "/breeds", icon: <FaDog /> },
   { text: "Geofences", path: "/geofences", icon: <FaStreetView /> },
