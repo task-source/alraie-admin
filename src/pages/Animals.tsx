@@ -44,6 +44,7 @@ interface AnimalRow {
   updatedAt?: string;
   owner?: AnimalOwner | null;
   assistant?: AnimalAssistant | null;
+  isManual?: boolean | null;
 }
 
 interface AnimalTypeOption {
@@ -69,6 +70,7 @@ const Animals: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [category, setCategory] = useState<string>("");
+  const [isManual, setIsManual] = useState<string>("");
   const [typeId, setTypeId] = useState<string>("");
   const [gender, setGender] = useState<string>("");
 
@@ -135,6 +137,7 @@ const Animals: React.FC = () => {
       };
       if (status) params.status = status;
       if (category) params.category = category;
+      if (isManual) params.isManual = isManual;
       if (typeId) params.typeId = typeId;
       if (gender) params.gender = gender;
       if (startDate) params.startDate = startDate;
@@ -164,6 +167,7 @@ const Animals: React.FC = () => {
     debouncedSearch,
     status,
     category,
+    isManual,
     typeId,
     gender,
     startDate,
@@ -187,6 +191,7 @@ const Animals: React.FC = () => {
     debouncedSearch,
     status,
     category,
+    isManual,
     typeId,
     gender,
     startDate,
@@ -222,8 +227,13 @@ const Animals: React.FC = () => {
       },
     },
     {
+      key: "Id",
+      label: "Id",
+      render: (r) => r._id || "N/A",
+    },
+    {
       key: "uniqueAnimalId",
-      label: "ID / Name",
+      label: "Animal ID / Name",
       render: (r) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm text-gray-800 dark:text-gray-200">
@@ -249,6 +259,11 @@ const Animals: React.FC = () => {
       key: "status",
       label: "Status",
       render: (r) => r.animalStatus || "N/A",
+    },
+    {
+      key: "entryType",
+      label: "Entry Type",
+      render: (r) => r.isManual ? "Manual": "Scanned",
     },
     {
       key: "gender",
@@ -448,6 +463,17 @@ const Animals: React.FC = () => {
 
               {/* Date range row */}
               <div className="flex flex-col sm:flex-row gap-3 items-center w-full">
+              <FilterDropdown
+                  label="Entry Type (Any)"
+                  value={isManual}
+                  onChange={setIsManual}
+                  className="flex-1 w-full"
+                  options={[
+                    { label: "Entry Type (Any)", value: "" },
+                    { label: "Manual", value: "true" },
+                    { label: "Scanned", value: "false" },
+                  ]}
+                />
                 <div className="flex flex-1 flex-row items-center w-full">
                   <label className="text-sm text-gray-600 dark:text-gray-300 mr-2">
                     From

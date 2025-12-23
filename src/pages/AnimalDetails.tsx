@@ -41,6 +41,7 @@ interface AnimalDetail {
   uniqueAnimalId?: string;
   name?: string;
   gender?: string;
+  isManual?: boolean;
 
   typeNameEn?: string;
   breedNameEn?: string;
@@ -354,9 +355,11 @@ const AnimalDetails: React.FC = () => {
             {animal && (
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 {Object.entries({
+                  Id: animal._id,
                   "Animal ID": animal.uniqueAnimalId,
                   Name: animal.name,
                   Gender: animal.gender,
+                  "Entry Type": animal.isManual ? "Manual" : "Scanned",
                   Type: animal.typeNameEn,
                   Breed: animal.breedNameEn,
                   Status: animal.animalStatus,
