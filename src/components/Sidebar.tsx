@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SidebarContext";
-import { FiMenu, FiChevronDown, FiChevronRight, FiFile , FiDelete} from "react-icons/fi";
+import { FiMenu, FiChevronDown, FiChevronRight, FiFile , FiDelete, FiPhoneIncoming} from "react-icons/fi";
 import {
   FaHome,
   FaUsers,
@@ -45,6 +45,7 @@ const menuItems = [
   { text: "About Us", path: "/aboutUs", icon: <FaHandshake /> },
   { text: "Deletion Reasons", path: "/accountDeletionReasons", icon: <FaListUl /> },
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
+  { text: "Contact Us", path: "/contactUs", icon: <FiPhoneIncoming /> },
   { text: "Deleted Users", path: "/deletedUsers", icon: <FiDelete /> },
 ];
 
