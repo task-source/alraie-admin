@@ -278,7 +278,14 @@ const [debouncedMaxPrice, setDebouncedMaxPrice] = useState("");
           >
             {r.isActive ? "Deactivate" : "Activate"}
           </button>
-
+          <button
+            onClick= {(e) => {
+              e.stopPropagation();
+              navigate(`/products/${r?._id}/edit`)}}
+            className="px-3 py-1 rounded-md border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white text-xs"
+          >
+            Edit
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();

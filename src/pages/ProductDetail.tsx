@@ -13,7 +13,7 @@ import { useAlert } from "../context/AlertContext";
 
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { DataTable, DataTableColumn } from "../components/DataTable";
-
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 /* -------------------------------------------------------------------------- */
 /*                              STATUS BADGES                                  */
 /* -------------------------------------------------------------------------- */
@@ -35,6 +35,10 @@ const ORDER_STATUS_BADGE: Record<string, string> = {
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
 /* -------------------------------------------------------------------------- */
+interface ExtraInfo {
+  heading: string;
+  features: string[];
+}
 
 interface ProductDetail {
   _id: string;
@@ -45,6 +49,7 @@ interface ProductDetail {
   currency: string;
   stockQty: number;
   isActive: boolean;
+  extraInfos?: ExtraInfo[];
 }
 
 interface ProductOrderRow {
@@ -70,7 +75,7 @@ const ProductDetails: React.FC = () => {
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-
+  const [openAccordionIndex, setOpenAccordionIndex] = useState<number | null>(null);
   /* ---------------- PRODUCT ORDERS STATE ---------------- */
 
   const [orders, setOrders] = useState<ProductOrderRow[]>([]);
@@ -254,11 +259,10 @@ const ProductDetails: React.FC = () => {
             <button
               key={page}
               onClick={() => setOrdersPage(page)}
-              className={`px-3 py-1 rounded-md ${
-                page === current
+              className={`px-3 py-1 rounded-md ${page === current
                   ? "bg-[#4F46E5] text-white"
                   : "bg-gray-200 dark:bg-gray-700"
-              }`}
+                }`}
             >
               {page}
             </button>
@@ -313,9 +317,8 @@ const ProductDetails: React.FC = () => {
       label: "Status",
       render: (o) => (
         <span
-          className={`px-2 py-0.5 text-xs rounded ${
-            ORDER_STATUS_BADGE[o.status] || "bg-gray-100 dark:bg-gray-700"
-          }`}
+          className={`px-2 py-0.5 text-xs rounded ${ORDER_STATUS_BADGE[o.status] || "bg-gray-100 dark:bg-gray-700"
+            }`}
         >
           {o.status}
         </span>
@@ -348,6 +351,12 @@ const ProductDetails: React.FC = () => {
                   className="px-3 py-1 rounded-lg border text-sm dark:text-white"
                 >
                   Back
+                </button>
+                <button
+                  onClick={() => navigate(`/products/${product?._id}/edit`)}
+                  className="px-3 py-1 rounded-lg border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white text-sm"
+                >
+                  Edit
                 </button>
 
                 <button
@@ -396,6 +405,56 @@ const ProductDetails: React.FC = () => {
                 ))}
               </div>
             )}
+
+            {product?.extraInfos?.length ? (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">
+                  Additional Information
+                </h2>
+
+                <div className="space-y-3">
+                  {product.extraInfos.map((info, index) => {
+                    const isOpen = openAccordionIndex === index;
+
+                    return (
+                      <div
+                        key={index}
+                        className="border rounded-xl bg-white dark:bg-gray-800 overflow-hidden"
+                      >
+                        {/* HEADER */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenAccordionIndex(isOpen ? null : index)
+                          }
+                          className="w-full flex justify-between items-center px-4 py-3 text-left"
+                        >
+                          <span className="font-medium text-gray-800 dark:text-white">
+                            {info.heading}
+                          </span>
+                          <span className="ml-auto text-xs dark:text-white">
+                            {isOpen ?
+                              <FiChevronUp size={16} /> :
+                              <FiChevronDown size={16} />}
+                          </span>
+                        </button>
+
+                        {/* CONTENT */}
+                        {isOpen && (
+                          <div className="px-5 pb-4 text-sm text-gray-700 dark:text-gray-300">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {info.features.map((feature, i) => (
+                                <li key={i}>{feature}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {/* ORDERS */}
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">
