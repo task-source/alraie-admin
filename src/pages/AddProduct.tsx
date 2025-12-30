@@ -18,9 +18,12 @@ const AddProduct: React.FC = () => {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionAr, setDescriptionAr] = useState("");
   const [extraInfos, setExtraInfos] = useState<ExtraInfo[]>([]);
+  const [extraInfosAr, setExtraInfosAr] = useState<ExtraInfo[]>([]);
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("AED");
   const [stockQty, setStockQty] = useState("");
@@ -104,12 +107,25 @@ const AddProduct: React.FC = () => {
     );
   };
 
+  const removeFeatureAr = (infoIndex: number, featureIndex: number) => {
+    setExtraInfosAr((prev) =>
+      prev.map((item, i) =>
+        i === infoIndex
+          ? {
+            ...item,
+            features: item.features.filter((_, fi) => fi !== featureIndex),
+          }
+          : item
+      )
+    );
+  };
+
   const removeExtraInfo = (index: number) => {
     setExtraInfos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
-    if (!name || !slug || !price || !stockQty) {
+    if (!name || !nameAr || !slug || !price || !stockQty) {
       showAlert("error", "Please fill all required fields");
       return;
     }
@@ -120,6 +136,8 @@ const AddProduct: React.FC = () => {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("slug", slug);
+      formData.append("name_ar", nameAr);
+      formData.append("description_ar", descriptionAr);
       formData.append("description", description);
       formData.append("price", price);
       formData.append("currency", currency);
@@ -142,6 +160,24 @@ const AddProduct: React.FC = () => {
           .forEach((feature, featureIndex) => {
             formData.append(
               `extraInfos[${infoIndex}][features][${featureIndex}]`,
+              feature
+            );
+          });
+      });
+
+      extraInfosAr.forEach((info, infoIndex) => {
+        if (!info.heading.trim()) return;
+      
+        formData.append(
+          `extraInfos_ar[${infoIndex}][heading]`,
+          info.heading
+        );
+      
+        info.features
+          .filter((f) => f.trim())
+          .forEach((feature, featureIndex) => {
+            formData.append(
+              `extraInfos_ar[${infoIndex}][features][${featureIndex}]`,
               feature
             );
           });
@@ -197,7 +233,17 @@ const AddProduct: React.FC = () => {
                   className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white"
                 />
               </div>
-
+              <div>
+                <label className="text-sm text-gray-700 dark:text-gray-300">
+                  Name (Arabic) *
+                </label>
+                <input
+                  value={nameAr}
+                  onChange={(e) => setNameAr(e.target.value)}
+                  dir="rtl"
+                  className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white text-right"
+                />
+              </div>
               {/* Slug */}
               <div>
                 <label className="text-sm text-gray-700 dark:text-gray-300">
@@ -223,6 +269,18 @@ const AddProduct: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="text-sm text-gray-700 dark:text-gray-300">
+                  Description (Arabic)
+                </label>
+                <textarea
+                  value={descriptionAr}
+                  onChange={(e) => setDescriptionAr(e.target.value)}
+                  rows={4}
+                  dir="rtl"
+                  className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white text-right"
+                />
+              </div>
               {/* Price + Currency */}
               <div className="flex gap-3">
                 <div className="flex-1">
@@ -407,6 +465,106 @@ const AddProduct: React.FC = () => {
                 ))}
               </div>
 
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm text-gray-700 dark:text-gray-300">
+                    Extra Information (Arabic)
+                  </h2>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExtraInfosAr((prev) => [...prev, { heading: "", features: [""] }])
+                    }
+                    className="text-sm text-[#4F46E5] hover:underline"
+                  >
+                    + Add Section
+                  </button>
+                </div>
+
+                {extraInfosAr.map((info, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <input
+                        dir="rtl"
+                        placeholder="العنوان"
+                        value={info.heading}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setExtraInfosAr((prev) =>
+                            prev.map((item, i) =>
+                              i === index ? { ...item, heading: v } : item
+                            )
+                          );
+                        }}
+                        className="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md px-3 py-2 text-sm dark:text-white text-right"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtraInfosAr((prev) => prev.filter((_, i) => i !== index))
+                        }
+                        className="text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    {info.features.map((feature, fi) => (
+                      <div key={fi} className="flex gap-2">
+                        <input
+                          dir="rtl"
+                          placeholder={`الميزة ${fi + 1}`}
+                          value={feature}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setExtraInfosAr((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? {
+                                    ...item,
+                                    features: item.features.map((f, fidx) =>
+                                      fidx === fi ? v : f
+                                    ),
+                                  }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md px-3 py-2 text-sm dark:text-white text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFeatureAr(index, fi)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExtraInfosAr((prev) =>
+                          prev.map((item, i) =>
+                            i === index
+                              ? { ...item, features: [...item.features, ""] }
+                              : item
+                          )
+                        )
+                      }
+                      className="text-sm text-[#4F46E5] hover:underline"
+                    >
+                      + Add Feature
+                    </button>
+                  </div>
+                ))}
+              </div>
               {/* Active */}
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <input

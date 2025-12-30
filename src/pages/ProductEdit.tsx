@@ -15,14 +15,17 @@ interface ExtraInfo {
 interface Product {
   _id: string;
   name: string;
+  name_ar: string;
   slug: string;
   description?: string;
+  description_ar?: string;
   price: number;
   currency: string;
   stockQty: number;
   isActive: boolean;
   images: string[];
   extraInfos?: ExtraInfo[];
+  extraInfos_ar?: ExtraInfo[];
 }
 
 const MAX_IMAGES = 10;
@@ -36,11 +39,14 @@ const ProductEdit: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
 
   const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionAr, setDescriptionAr] = useState("");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("AED");
   const [extraInfos, setExtraInfos] = useState<ExtraInfo[]>([]);
+  const [extraInfosAr, setExtraInfosAr] = useState<ExtraInfo[]>([]);
   const [stockQty, setStockQty] = useState("");
 
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -58,13 +64,16 @@ const ProductEdit: React.FC = () => {
         const p = res.data.data;
         setProduct(p);
         setName(p.name);
+        setNameAr(p.name_ar);
         setSlug(p.slug);
         setDescription(p.description || "");
+        setDescriptionAr(p.description_ar || "");
         setPrice(String(p.price));
         setCurrency(p.currency);
         setStockQty(String(p.stockQty));
         setExistingImages(p.images || []);
         setExtraInfos(p.extraInfos || []);
+        setExtraInfosAr(p.extraInfos_ar || []);
       }
     } catch (err) {
       showApiError(err);
@@ -156,6 +165,19 @@ const ProductEdit: React.FC = () => {
     );
   };
 
+  const removeFeatureAr = (infoIndex: number, featureIndex: number) => {
+    setExtraInfosAr((prev) =>
+      prev.map((item, i) =>
+        i === infoIndex
+          ? {
+            ...item,
+            features: item.features.filter((_, fi) => fi !== featureIndex),
+          }
+          : item
+      )
+    );
+  };
+
   const removeExtraInfo = (index: number) => {
     setExtraInfos((prev) => prev.filter((_, i) => i !== index));
   };
@@ -169,8 +191,10 @@ const ProductEdit: React.FC = () => {
 
       const form = new FormData();
       form.append("name", name);
+      form.append("name_ar", nameAr);
       // form.append("slug", slug);
       form.append("description", description);
+      form.append("description_ar", descriptionAr);
       form.append("price", price);
       form.append("currency", currency);
       form.append("stockQty", stockQty);
@@ -197,6 +221,24 @@ const ProductEdit: React.FC = () => {
           .forEach((feature, featureIndex) => {
             form.append(
               `extraInfos[${infoIndex}][features][${featureIndex}]`,
+              feature
+            );
+          });
+      });
+
+      extraInfosAr.forEach((info, infoIndex) => {
+        if (!info.heading.trim()) return;
+
+        form.append(
+          `extraInfos_ar[${infoIndex}][heading]`,
+          info.heading
+        );
+
+        info.features
+          .filter((f) => f.trim())
+          .forEach((feature, featureIndex) => {
+            form.append(
+              `extraInfos_ar[${infoIndex}][features][${featureIndex}]`,
               feature
             );
           });
@@ -256,6 +298,17 @@ const ProductEdit: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="text-sm text-gray-700 dark:text-gray-300">
+                  Name (Arabic)*
+                </label>
+                <input
+                  value={nameAr}
+                  onChange={(e) => setNameAr(e.target.value)}
+                  dir="rtl"
+                  className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white"
+                />
+              </div>
               {/* Slug */}
               {/* <div>
         <label className="text-sm text-gray-700 dark:text-gray-300">
@@ -277,6 +330,19 @@ const ProductEdit: React.FC = () => {
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-700 dark:text-gray-300">
+                  Description (Arabic)
+                </label>
+                <textarea
+                  rows={4}
+                  value={descriptionAr}
+                  dir="rtl"
+                  onChange={(e) => setDescriptionAr(e.target.value)}
                   className="w-full mt-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg px-3 py-2 text-sm dark:text-white"
                 />
               </div>
@@ -494,6 +560,106 @@ const ProductEdit: React.FC = () => {
                 ))}
               </div>
 
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm text-gray-700 dark:text-gray-300">
+                    Extra Information (Arabic)
+                  </h2>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExtraInfosAr((prev) => [...prev, { heading: "", features: [""] }])
+                    }
+                    className="text-sm text-[#4F46E5] hover:underline"
+                  >
+                    + Add Section
+                  </button>
+                </div>
+
+                {extraInfosAr.map((info, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <input
+                        dir="rtl"
+                        placeholder="العنوان"
+                        value={info.heading}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setExtraInfosAr((prev) =>
+                            prev.map((item, i) =>
+                              i === index ? { ...item, heading: v } : item
+                            )
+                          );
+                        }}
+                        className="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md px-3 py-2 text-sm dark:text-white text-right"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtraInfosAr((prev) => prev.filter((_, i) => i !== index))
+                        }
+                        className="text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    {info.features.map((feature, fi) => (
+                      <div key={fi} className="flex gap-2">
+                        <input
+                          dir="rtl"
+                          placeholder={`الميزة ${fi + 1}`}
+                          value={feature}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setExtraInfosAr((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? {
+                                    ...item,
+                                    features: item.features.map((f, fidx) =>
+                                      fidx === fi ? v : f
+                                    ),
+                                  }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md px-3 py-2 text-sm dark:text-white text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFeatureAr(index, fi)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExtraInfosAr((prev) =>
+                          prev.map((item, i) =>
+                            i === index
+                              ? { ...item, features: [...item.features, ""] }
+                              : item
+                          )
+                        )
+                      }
+                      className="text-sm text-[#4F46E5] hover:underline"
+                    >
+                      + Add Feature
+                    </button>
+                  </div>
+                ))}
+              </div>
               {/* ACTIONS */}
               <div className="flex justify-end gap-3 pt-4">
                 <button

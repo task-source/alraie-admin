@@ -43,6 +43,9 @@ interface ExtraInfo {
 interface ProductDetail {
   _id: string;
   name: string;
+  name_ar: string;
+  description?:string;
+  description_ar?:string;
   slug: string;
   images?: string[];
   price: number;
@@ -50,6 +53,7 @@ interface ProductDetail {
   stockQty: number;
   isActive: boolean;
   extraInfos?: ExtraInfo[];
+  extraInfos_ar?: ExtraInfo[];
 }
 
 interface ProductOrderRow {
@@ -76,6 +80,7 @@ const ProductDetails: React.FC = () => {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [openAccordionIndex, setOpenAccordionIndex] = useState<number | null>(null);
+  const [openAccordionIndexAr, setOpenAccordionIndexAr] = useState<number | null>(null);
   /* ---------------- PRODUCT ORDERS STATE ---------------- */
 
   const [orders, setOrders] = useState<ProductOrderRow[]>([]);
@@ -391,17 +396,22 @@ const ProductDetails: React.FC = () => {
               <div className="rounded-xl border bg-white dark:bg-gray-800 p-5 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 {Object.entries({
                   Name: product.name,
+                  "Name (Arabic)": product?.name_ar,
                   Slug: product.slug,
                   Price: `${product.price} ${product.currency}`,
                   Stock: product.stockQty,
                   Status: product.isActive ? "Active" : "Inactive",
+                  Description: product?.description ?? "",
+                  "Description (Arabic)": product?.description_ar ?? "",
                 }).map(([k, v]) => (
+                  (!!v)?
                   <div key={k}>
                     <div className="text-xs uppercase text-gray-500">{k}</div>
                     <div className="text-gray-900 dark:text-white break-all">
                       {v}
                     </div>
                   </div>
+                  : null
                 ))}
               </div>
             )}
@@ -426,6 +436,56 @@ const ProductDetails: React.FC = () => {
                           type="button"
                           onClick={() =>
                             setOpenAccordionIndex(isOpen ? null : index)
+                          }
+                          className="w-full flex justify-between items-center px-4 py-3 text-left"
+                        >
+                          <span className="font-medium text-gray-800 dark:text-white">
+                            {info.heading}
+                          </span>
+                          <span className="ml-auto text-xs dark:text-white">
+                            {isOpen ?
+                              <FiChevronUp size={16} /> :
+                              <FiChevronDown size={16} />}
+                          </span>
+                        </button>
+
+                        {/* CONTENT */}
+                        {isOpen && (
+                          <div className="px-5 pb-4 text-sm text-gray-700 dark:text-gray-300">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {info.features.map((feature, i) => (
+                                <li key={i}>{feature}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {product?.extraInfos_ar?.length ? (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">
+                  Additional Information (Arabic)
+                </h2>
+
+                <div className="space-y-3">
+                  {product.extraInfos_ar.map((info, index) => {
+                    const isOpen = openAccordionIndexAr === index;
+
+                    return (
+                      <div
+                        key={index}
+                        className="border rounded-xl bg-white dark:bg-gray-800 overflow-hidden"
+                      >
+                        {/* HEADER */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenAccordionIndexAr(isOpen ? null : index)
                           }
                           className="w-full flex justify-between items-center px-4 py-3 text-left"
                         >
