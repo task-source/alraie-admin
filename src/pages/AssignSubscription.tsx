@@ -13,6 +13,7 @@ interface OwnerUser {
   _id: string;
   email?: string;
   phone?: string;
+  fullPhone? :string;
   name?:string;
 }
 
@@ -167,8 +168,11 @@ const AssignSubscription: React.FC = () => {
 
               {/* Selected Owner */}
               {selectedOwner && (
-                <div className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-md">
-                  Selected Owner ID: {selectedOwner._id}
+                <div className="flex flex-col gap-3 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-md">
+                  <span>Owner ID: {selectedOwner._id}</span>
+                 {!!selectedOwner.name && <span>Owner Name: {selectedOwner.name}</span>}
+                 {!!selectedOwner.email &&<span>Owner Email: {selectedOwner.email}</span>}
+                 {!!selectedOwner.fullPhone &&<span>Owner Phone: {selectedOwner.fullPhone}</span>}
                 </div>
               )}
 

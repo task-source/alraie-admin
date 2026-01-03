@@ -192,7 +192,9 @@ const SubscriptionPlans: React.FC = () => {
       render: (p) => (
         <div className="flex gap-2">
           <button
-            onClick={() => toggleActive(p)}
+            onClick={(e) => {
+                e.stopPropagation();
+                toggleActive(p)}}
             className={`px-3 py-1 rounded-md text-xs font-medium border transition ${
               p.isActive
                 ? "border-red-600 text-red-600 hover:bg-red-50"
@@ -202,7 +204,10 @@ const SubscriptionPlans: React.FC = () => {
             {p.isActive ? "Deactivate" : "Activate"}
           </button>
           <button
-            onClick={() => navigate(`/subscriptions/plans/${p._id}/edit`)}
+            onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/subscriptions/plans/${p._id}/edit`)}
+            }
             className="px-3 py-1 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white text-xs rounded-md"
           >
             Edit
