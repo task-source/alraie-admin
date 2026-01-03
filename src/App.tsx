@@ -34,6 +34,12 @@ import AccountDeletionReasons from "./pages/AccountDeletionReasons";
 import AnimalReports from "./pages/AnimalReports";
 import DeletedUsers from "./pages/DeletedUsers";
 import ContactUsList from "./pages/ContactUsList";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
+import SubscriptionPlanEdit from "./pages/SubscriptionPlanEdit";
+import AddSubscriptionPlan from "./pages/AddSubscriptionPlan";
+import UserSubscriptions from "./pages/UserSubscriptions";
+import PlanDetails from "./pages/PlanDetails";
+import AssignSubscription from "./pages/AssignSubscription";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -155,6 +161,56 @@ function App() {
                     }
                   />
                   <Route
+                    path="/subscriptions/plans"
+                    element={
+                      <PrivateRoute>
+                        <SubscriptionPlans />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/plans/assign"
+                    element={
+                      <PrivateRoute>
+                        <AssignSubscription />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/plans/new"
+                    element={
+                      <PrivateRoute>
+                        <AddSubscriptionPlan />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/plans/:id"
+                    element={
+                      <PrivateRoute>
+                        <PlanDetails />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/plans/:id/edit"
+                    element={
+                      <PrivateRoute>
+                        <SubscriptionPlanEdit />
+                      </PrivateRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/subscriptions/users"
+                    element={
+                      <PrivateRoute>
+                        <UserSubscriptions />
+                      </PrivateRoute>
+                    }
+                  />
+
+                  <Route
                     path="/products"
                     element={
                       <PrivateRoute>
@@ -211,9 +267,9 @@ function App() {
                       </PrivateRoute>
                     }
                   />
-                    <Route path="/user/:id" element={<PrivateRoute><UserDetails /></PrivateRoute>} />
-                    <Route path="/animal/:id" element={<PrivateRoute><AnimalDetails /></PrivateRoute>} />
-                    <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
+                  <Route path="/user/:id" element={<PrivateRoute><UserDetails /></PrivateRoute>} />
+                  <Route path="/animal/:id" element={<PrivateRoute><AnimalDetails /></PrivateRoute>} />
+                  <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
                 </Routes>
               </Router>
             </LoaderProvider>

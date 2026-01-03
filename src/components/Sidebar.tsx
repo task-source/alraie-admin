@@ -15,6 +15,7 @@ import {
   FaStreetView,
   FaImages,
   FaMapMarkerAlt,
+  FaMoneyBillWave,
   FaShoppingBag,
   FaCartPlus,
   FaHandshake,
@@ -32,6 +33,14 @@ const menuItems = [
   { text: "Breeds", path: "/breeds", icon: <FaDog /> },
   { text: "Geofences", path: "/geofences", icon: <FaStreetView /> },
   { text: "GPS", path: "/gps", icon: <FaMapMarkerAlt /> },
+  {
+    text: "Subscription",
+    icon: <FaMoneyBillWave />,
+    children: [
+      { text: "Plans", path: "/subscriptions/plans", icon: <FaListUl /> },
+      { text: "Subscribed users", path: "/subscriptions/users", icon: <FaUsers /> },
+    ],
+  },
   {
     text: "Marketplace",
     icon: <FaShoppingBag />,
@@ -54,6 +63,7 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [marketOpen, setMarketOpen] = React.useState<boolean>(false);
+  const [subscriptionOpen, setSubscriptionOpen] = React.useState<boolean>(false);
   const {
     isExpanded,
     isMobileOpen,
@@ -77,6 +87,9 @@ const Sidebar: React.FC = () => {
   React.useEffect(() => {
     if (location.pathname.startsWith("/products") || location.pathname.startsWith("/orders")) {
       setMarketOpen(true);
+    }
+    if (location.pathname.startsWith("/subscriptions")) {
+      setSubscriptionOpen(true);
     }
   }, [location.pathname]);
 
@@ -156,7 +169,21 @@ const Sidebar: React.FC = () => {
               // MARKETPLACE (WITH SUBMENU)
               // ----------------------------------
               if ("children" in item) {
-                const isActive = item?.children?.some(
+                const isMarketplace = item.text === "Marketplace";
+                const isSubscription = item.text === "Subscription";
+              
+                const isOpen = isMarketplace
+                  ? marketOpen
+                  : isSubscription
+                  ? subscriptionOpen
+                  : false;
+              
+                const toggleOpen = () => {
+                  if (isMarketplace) setMarketOpen((v) => !v);
+                  if (isSubscription) setSubscriptionOpen((v) => !v);
+                };
+              
+                const isActive = item.children?.some(
                   (c) => location.pathname === c.path
                 );
 
@@ -164,7 +191,7 @@ const Sidebar: React.FC = () => {
                   <li key={item.text}>
                     {/* Parent */}
                     <button
-                      onClick={() => setMarketOpen((v) => !v)}
+                      onClick={toggleOpen}
                       className={`w-full flex items-center gap-3 rounded-md px-3 py-3 transition-colors
             ${isActive
                           ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -184,7 +211,7 @@ const Sidebar: React.FC = () => {
 
                       {expanded && (
                         <span className="ml-auto text-xs">
-                          {marketOpen ? (
+                          {isOpen ? (
                             <FiChevronDown size={16} />
                           ) : (
                             <FiChevronRight size={16} />
@@ -194,7 +221,7 @@ const Sidebar: React.FC = () => {
                     </button>
 
                     {/* Sub menu */}
-                    {marketOpen && expanded && (
+                    {isOpen && expanded && (
                       <ul className="ml-9 mt-1 flex flex-col gap-1">
                         {item?.children?.map((child) => {
                           const active = location.pathname === child.path;
@@ -222,9 +249,6 @@ const Sidebar: React.FC = () => {
                 );
               }
 
-              // ----------------------------------
-              // NORMAL SINGLE ITEM
-              // ----------------------------------
               const active = location.pathname === item.path;
 
               return (

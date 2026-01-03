@@ -20,9 +20,26 @@ const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
   refunded: [],
 };
-/* -------------------------------------------------------------------------- */
-/*                                   TYPES                                    */
-/* -------------------------------------------------------------------------- */
+
+interface UserSubscription {
+  _id?: string;
+  ownerId?: string;
+  planKey?: string | null;
+  cycle?: string | null;
+  priceSnapshot?: {
+    amount?: number | null;
+    currency?: string | null;
+    platform?: string | null;
+  } | null;
+  startedAt?: string | null;
+  expiresAt?: string | null;
+  isTrial?: boolean | null;
+  status?: string | null;
+  source?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 interface User {
   _id: string | undefined;
   name: string | undefined;
@@ -275,6 +292,9 @@ const UserDetailsPage: React.FC = () => {
   const [newOrderStatus, setNewOrderStatus] = useState<string>("");
   const [orderStatusModalOpen, setOrderStatusModalOpen] = useState(false);
 
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+
   const [productId, setProductId] = useState("");
   const [orderProductsModalOpen, setOrderProductsModalOpen] = useState(false);
   const [orderForProducts, setOrderForProducts] = useState<OrderRow | null>(
@@ -380,6 +400,33 @@ const UserDetailsPage: React.FC = () => {
     );
     return () => clearTimeout(h);
   }, [assistantsSearch]);
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!user || user.role !== "owner" || !user._id) {
+        setSubscription(null);
+        return;
+      }
+  
+      try {
+        setSubscriptionLoading(true);
+        const res = await api.get(`/userSubscriptions/${user._id}`);
+  
+        if (res?.data?.success && res.data.data) {
+          setSubscription(res.data.data);
+        } else {
+          setSubscription(null);
+        }
+      } catch {
+        // subscription may legitimately not exist
+        setSubscription(null);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+  
+    fetchSubscription();
+  }, [user]);
   /* -------------------------------------------------------------------------- */
   /*                           OWNER ID FOR ANIMALS                              */
   /* -------------------------------------------------------------------------- */
@@ -1745,6 +1792,111 @@ const UserDetailsPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* -------------------- SUBSCRIPTION SECTION -------------------- */}
+            {user?.role === "owner" && (
+              <div className="mb-10 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4 sm:p-6">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+                  Subscription
+                </h2>
+
+                {subscriptionLoading ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading subscription…
+                  </div>
+                ) : !subscription ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    No active subscription found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Plan
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.planKey ?? "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Billing Cycle
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.cycle ?? "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Price
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.priceSnapshot?.amount != null
+                          ? `${subscription.priceSnapshot.amount} ${subscription.priceSnapshot.currency ?? ""
+                          }`
+                          : "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Platform
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.priceSnapshot?.platform ?? "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Status
+                      </div>
+                      <div
+                        className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${subscription.status === "active"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                            : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                          }`}
+                      >
+                        {subscription.status ?? "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Trial
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.isTrial ? "Yes" : "No"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Started At
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.startedAt
+                          ? new Date(subscription.startedAt).toLocaleString()
+                          : "—"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        Expires At
+                      </div>
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {subscription.expiresAt
+                          ? new Date(subscription.expiresAt).toLocaleString()
+                          : "—"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {user?.role === "owner" && !!user?.assistantIds?.length && (
               <>
