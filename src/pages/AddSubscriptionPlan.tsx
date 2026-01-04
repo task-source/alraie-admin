@@ -40,7 +40,7 @@ const AddSubscriptionPlan: React.FC = () => {
     try {
       showLoader();
 
-      const payload = {
+      const payload: any = {
         planKey,
         name_en: nameEn,
         name_ar: nameAr,
@@ -50,12 +50,15 @@ const AddSubscriptionPlan: React.FC = () => {
         features_ar: featuresAr.filter((f) => f.trim()),
         maxAnimals: Number(maxAnimals),
         maxAssistants: Number(maxAssistants),
-        iosProductId_monthly: iosMonthly,
-        iosProductId_yearly: iosYearly,
-        androidProductId_monthly: androidMonthly,
-        androidProductId_yearly: androidYearly,
         isPublic,
       };
+      
+      if (planKey !== "enterprise") {
+        payload.iosProductId_monthly = iosMonthly;
+        payload.iosProductId_yearly = iosYearly;
+        payload.androidProductId_monthly = androidMonthly;
+        payload.androidProductId_yearly = androidYearly;
+      }
 
       const res = await api.post("/subscriptionPlan", payload);
 
@@ -178,6 +181,7 @@ const AddSubscriptionPlan: React.FC = () => {
               </div>
 
               {/* Platform IDs */}
+              {planKey !== "enterprise" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="border rounded-lg p-4 space-y-2">
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
@@ -215,7 +219,12 @@ const AddSubscriptionPlan: React.FC = () => {
                   />
                 </div>
               </div>
-
+              )}
+                          {planKey === "enterprise" && (
+                              <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-md">
+                                  Enterprise plans are manually assigned and do not require App Store or Play Store product IDs.
+                              </div>
+                          )}
               <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-gray-800 dark:text-white">

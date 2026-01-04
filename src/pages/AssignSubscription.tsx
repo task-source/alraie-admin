@@ -33,8 +33,8 @@ const AssignSubscription: React.FC = () => {
   const [planKey, setPlanKey] = useState("");
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("INR");
-
+  const [currency, setCurrency] = useState("AED");
+  const [expiresAt, setExpiresAt] = useState("");
   /* ---------------- Debounce ---------------- */
   useEffect(() => {
     const t = setTimeout(() => {
@@ -80,16 +80,30 @@ const AssignSubscription: React.FC = () => {
         showAlert("error", "Please select a plan");
         return;
       }
+      
+      if (planKey === "enterprise" && !expiresAt) {
+        showAlert("error", "Please select expiry date for Enterprise plan");
+        return;
+      }
+      
     
     try {
       showLoader();
-      const res = await api.post("/userSubscriptions/assign", {
+      const payload :any = {
         ownerId: selectedOwner._id,
         planKey,
-        cycle,
         price: Number(price),
         currency,
-      });
+      };
+      
+      if (planKey === "enterprise") {
+        payload.expiresAt = expiresAt;
+      } else {
+        payload.cycle = cycle;
+      }
+      
+      const res = await api.post("/userSubscriptions/assign", payload);
+
 
       if (res?.data?.success) {
         showAlert("success", "Subscription assigned");
@@ -196,16 +210,28 @@ const AssignSubscription: React.FC = () => {
       ]}
     />
 
-    <FilterDropdown
-      label="Billing Cycle"
-      value={cycle}
-      onChange={(v) => setCycle(v as "monthly" | "yearly")}
-      className="flex-1"
-      options={[
-        { label: "Monthly", value: "monthly" },
-        { label: "Yearly", value: "yearly" },
-      ]}
-    />
+                                  {/* Enterprise Expiry Date */}
+                                  {planKey === "enterprise" ? (
+
+                                      <input
+                                          type="date"
+                                          value={expiresAt}
+                                          onChange={(e) => setExpiresAt(e.target.value)}
+                                          className="flex-1 border border-gray-300 dark:border-gray-700 rounded-lg px-3 text-sm dark:bg-gray-900 dark:text-white"
+                                      />
+
+                                  ) : (
+                                      <FilterDropdown
+                                          label="Billing Cycle"
+                                          value={cycle}
+                                          onChange={(v) => setCycle(v as "monthly" | "yearly")}
+                                          className="flex-1"
+                                          options={[
+                                              { label: "Monthly", value: "monthly" },
+                                              { label: "Yearly", value: "yearly" },
+                                          ]}
+                                      />
+                                  )}
                 </div>
               </div>
 
