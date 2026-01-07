@@ -392,7 +392,7 @@ const Orders: React.FC = () => {
                   onChange={setStatus}
                   className="flex-1 min-w-0"
                   options={[
-                    { label: "All", value: "" },
+                    { label: "All Order Status", value: "" },
                     { label: "Pending", value: "pending" },
                     { label: "Paid", value: "paid" },
                     { label: "Processing", value: "processing" },
@@ -408,7 +408,7 @@ const Orders: React.FC = () => {
                   onChange={setPaymentStatus}
                   className="flex-1 min-w-0"
                   options={[
-                    { label: "All", value: "" },
+                    { label: "All Payment Status", value: "" },
                     { label: "Pending", value: "pending" },
                     { label: "Succeeded", value: "succeeded" },
                     { label: "Failed", value: "failed" },
@@ -422,11 +422,9 @@ const Orders: React.FC = () => {
                   onChange={setPaymentMethod}
                   className="flex-1 min-w-0"
                   options={[
-                    { label: "All", value: "" },
+                    { label: "All Payment Method", value: "" },
                     { label: "Card", value: "card" },
-                    { label: "Cash on Delivery", value: "cod" },
-                    { label: "PayPal", value: "paypal" },
-                    { label: "Other", value: "other" },
+                    { label: "Apple Pay", value: "applePay" },
                   ]}
                 />
                 <FilterDropdown

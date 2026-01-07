@@ -2390,9 +2390,7 @@ const UserDetailsPage: React.FC = () => {
                   options={[
                     { label: "All Methods", value: "" },
                     { label: "Card", value: "card" },
-                    { label: "Cash on Delivery", value: "cod" },
-                    { label: "PayPal", value: "paypal" },
-                    { label: "Other", value: "other" },
+                    { label: "Apple Pay", value: "applePay" },
                   ]}
                 />
               </div>
