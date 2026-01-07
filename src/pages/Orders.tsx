@@ -10,6 +10,7 @@ import { FiSearch } from "react-icons/fi";
 import Modal from "../components/Modal";
 import FilterDropdown from "../components/FilterDropdown";
 import { useNavigate } from "react-router-dom";
+import { PhotoIcon } from "@heroicons/react/24/outline";
 
 type OrderStatus =
   | "pending"
@@ -342,6 +343,35 @@ const Orders: React.FC = () => {
       );
   };
 
+  const ImageWithFallback: React.FC<{
+    src?: string | null;
+    alt?: string;
+    className?: string;
+  }> = ({ src, alt, className }) => {
+    const [failed, setFailed] = useState(false);
+  
+    useEffect(() => {
+      // reset when src changes
+      setFailed(false);
+    }, [src]);
+  
+    if (!src || failed) {
+      return (
+        <PhotoIcon className={`${className ?? "w-12 h-12"} text-gray-400`} />
+      );
+    }
+  
+    return (
+      // eslint-disable-next-line jsx-a11y/img-redundant-alt
+      <img
+        src={src}
+        alt={alt || "image"}
+        className={className ?? "w-12 h-12 rounded-md object-cover border"}
+        onError={() => setFailed(true)}
+      />
+      );
+  };
+  
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Sidebar />
@@ -515,11 +545,24 @@ const Orders: React.FC = () => {
                     {modalProducts.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex gap-3 p-3 rounded-lg border
-                                   border-gray-200 dark:border-gray-700
-                                   bg-gray-50 dark:bg-gray-900"
+                        className="flex flex-col items-center gap-2 bg-gray-50 dark:bg-gray-900 rounded-md p-2 border border-gray-100 dark:border-gray-700"
                       >
-                        {/* unchanged product card */}
+                        <div className="w-28 h-28 flex items-center justify-center rounded-md overflow-hidden bg-white dark:bg-gray-800">
+                          <ImageWithFallback
+                            src={item.productImage || null}
+                            alt={item.productName || "product"}
+                            className="w-28 h-28 object-cover"
+                          />
+                        </div>
+                        <div className="text-sm text-gray-800 dark:text-gray-200 font-medium">
+                          {item.productName || "—"}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          QTY : {item.quantity || "—"}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {`${item.currency} ${item.unitPrice}/unit` || "—"}
+                        </div>
                       </div>
                     ))}
                   </div>
