@@ -40,6 +40,8 @@ import AddSubscriptionPlan from "./pages/AddSubscriptionPlan";
 import UserSubscriptions from "./pages/UserSubscriptions";
 import PlanDetails from "./pages/PlanDetails";
 import AssignSubscription from "./pages/AssignSubscription";
+import DeliveryZones from "./pages/DeliveryZones";
+import AddAdmin from "./pages/AddAdmin";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { token } = useAuth();
@@ -161,6 +163,14 @@ function App() {
                     }
                   />
                   <Route
+                    path="/addAdmin"
+                    element={
+                      <PrivateRoute>
+                        <AddAdmin />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
                     path="/subscriptions/plans"
                     element={
                       <PrivateRoute>
@@ -267,6 +277,16 @@ function App() {
                       </PrivateRoute>
                     }
                   />
+
+                  <Route
+                    path="/deliveryZones"
+                    element={
+                      <PrivateRoute>
+                        <DeliveryZones />
+                      </PrivateRoute>
+                    }
+                  />
+
                   <Route path="/user/:id" element={<PrivateRoute><UserDetails /></PrivateRoute>} />
                   <Route path="/animal/:id" element={<PrivateRoute><AnimalDetails /></PrivateRoute>} />
                   <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />

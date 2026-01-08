@@ -239,7 +239,16 @@ const Orders: React.FC = () => {
         return (
           <select
             disabled={!next.length}
+            onClick={(e) => {
+              e.stopPropagation(); 
+            }}
+    
+            onMouseDown={(e) => {
+              e.stopPropagation(); 
+            }}
+    
             onChange={(e) => {
+              e.stopPropagation();
               setSelectedOrder(r);
               setNextStatus(e.target.value as OrderStatus);
               setConfirmModalOpen(true);

@@ -225,11 +225,15 @@ const Users: React.FC = () => {
     try {
       showLoader();
 
-      const res = await api.post(`/auth/${userToDelete._id}/delete`,{
+      let res;
+      if (userToDelete.role === "admin") {
+        res = await api.delete(`/auth/admin/${userToDelete._id}`);
+      } else {
+        res = await api.post(`/auth/${userToDelete._id}/delete`, {
         "reason": "Deleted by admin from users page"
       });
+      }
       if (res?.data?.success) {
-        // success
         fetchUsers();
       }
     } catch (err) {

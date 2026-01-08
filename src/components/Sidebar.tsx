@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SidebarContext";
-import { FiMenu, FiChevronDown, FiChevronRight, FiFile , FiDelete, FiPhoneIncoming} from "react-icons/fi";
+import { FiMenu, FiChevronDown, FiChevronRight, FiFile , FiDelete, FiPhoneIncoming,FiShield} from "react-icons/fi";
 import {
   FaHome,
   FaUsers,
@@ -20,6 +20,7 @@ import {
   FaCartPlus,
   FaHandshake,
   FaListUl,
+  FaLocationArrow,
   FaMoneyBill
 } from "react-icons/fa";
 import logo from "../images/logo192.png";
@@ -47,6 +48,7 @@ const menuItems = [
     children: [
       { text: "Products", path: "/products", icon: <FaCartPlus /> },
       { text: "Orders", path: "/orders", icon: <FaMoneyBill /> },
+      { text: "Delivery Zones", path: "/deliveryZones", icon: <FaLocationArrow /> },
     ],
   },
   { text: "Slides", path: "/slides", icon: <FaImages /> },
@@ -56,6 +58,7 @@ const menuItems = [
   { text: "Privacy Policy", path: "/privacy", icon: <FaUserShield /> },
   { text: "Contact Us", path: "/contactUs", icon: <FiPhoneIncoming /> },
   { text: "Deleted Users", path: "/deletedUsers", icon: <FiDelete /> },
+  { text: "Add Admin", path: "/addAdmin", icon: <FiShield /> },
 ];
 
 const Sidebar: React.FC = () => {
@@ -85,7 +88,7 @@ const Sidebar: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if (location.pathname.startsWith("/products") || location.pathname.startsWith("/orders")) {
+    if (location.pathname.startsWith("/products") || location.pathname.startsWith("/orders") || location.pathname.startsWith("/deliveryZones")) {
       setMarketOpen(true);
     }
     if (location.pathname.startsWith("/subscriptions")) {
